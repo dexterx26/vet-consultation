@@ -1,0 +1,632 @@
+Veterinary Teleconsultation App — System Requirements
+1. Project Overview
+The system is a web-based veterinary teleconsultation platform that connects pet owners/clients with licensed veterinarians for remote consultations through chat and video calls.
+The platform will have three main user types:
+Client / Pet Owner 
+Veterinarian 
+Administrator 
+Development Approach
+Phase 1: Web ApplicationPhase 2: Mobile Application — Android/iOS using the same backend/API
+The system should be designed from the beginning with an API-first/backend architecture so the mobile application can reuse the existing authentication, user, pet, veterinarian, booking, chat, and consultation services.
+2. User Registration
+2.1 Veterinarian Registration
+Veterinarians can register for an account and apply to become an available veterinarian on the platform.
+Required Information
+Full Name 
+Email Address 
+Mobile Number 
+Password 
+Profile Photo 
+Address 
+City/Municipality 
+Province 
+Country 
+Professional License Number 
+Veterinary License/Registration Information 
+Clinic/Hospital Name, if applicable 
+Clinic Address, if applicable 
+Years of Experience 
+Areas of Expertise 
+Animal Types Handled 
+Consultation Availability 
+Consultation Fee 
+Required Documents
+Veterinarian applicants can upload documents such as:
+Professional license 
+Valid ID 
+Veterinary registration documents 
+Other documents required by the platform 
+Veterinarian Account Status
+New veterinarian accounts should initially have:
+Pending Verification
+Administrator can:
+Approve 
+Reject 
+Request additional documents 
+Suspend 
+Reactivate 
+Only approved veterinarians can receive consultation requests.
+3. Client Registration
+Clients can create their own account.
+Client Information
+Full Name 
+Email Address 
+Mobile Number 
+Password 
+Profile Photo 
+Address 
+City/Municipality 
+Province 
+Country 
+The client's location will be used to provide veterinarian suggestions based on proximity.
+4. Pet Management
+A client can register one or more pets.
+Pet Information
+Each pet should have:
+Pet Name 
+Animal Type 
+Breed 
+Sex 
+Date of Birth / Age 
+Weight 
+Color 
+Photo 
+Medical Notes 
+Existing Conditions 
+Allergies 
+Current Medications 
+Vaccination Information 
+Additional Notes 
+Animal Types
+The system should initially support common categories such as:
+Dog 
+Cat 
+Bird 
+Rabbit 
+Hamster 
+Reptile 
+Other 
+The animal list should preferably be configurable by the administrator rather than hard-coded.
+5. Veterinarian Search
+When a client needs a consultation, they can search for available veterinarians.
+Search/Filter Options
+Clients can filter veterinarians by:
+Distance/location 
+Animal type 
+Breed expertise 
+Area of specialization 
+Availability 
+Consultation fee 
+Language 
+Online status 
+Location-Based Suggestions
+The system should prioritize veterinarians based on the client's location.
+Example:
+Client location: Quezon City
+The system may display:
+Veterinarian 1 — 2.5 km away 
+Veterinarian 2 — 4.1 km away 
+Veterinarian 3 — 6.8 km away 
+The system should not require the veterinarian and client to be in the same location. Location is primarily used for proximity-based suggestions.
+For privacy, the platform should avoid exposing a veterinarian's exact personal address to clients unless the veterinarian explicitly provides a clinic location.
+6. Veterinarian Profile
+Clients can view a veterinarian's profile before requesting a consultation.
+Profile Information
+Profile photo 
+Veterinarian name 
+Verification status 
+Professional credentials 
+Specializations 
+Animal types handled 
+Experience 
+Location 
+Consultation fee 
+Available schedule 
+Languages 
+Biography 
+Rating/review information 
+Consultation history statistics, where appropriate 
+7. Consultation Request / Booking
+A client cannot immediately contact a veterinarian.
+The consultation must follow a booking/request and acceptance process.
+Client Flow
+Client
+   ↓
+Select Pet
+   ↓
+Select Veterinarian
+   ↓
+Select Consultation Type
+   ↓
+Select Date/Time
+   ↓
+Enter Reason for Consultation
+   ↓
+Upload Optional Photos/Documents
+   ↓
+Submit Consultation Request
+   ↓
+Waiting for Veterinarian
+The veterinarian receives the request.
+Veterinarian Actions
+The veterinarian can:
+Accept 
+Decline 
+Request another schedule 
+View client's pet information 
+View consultation reason 
+View uploaded images/documents 
+8. Consultation Status
+The consultation should have clear statuses.
+Example:
+Pending
+   ↓
+Accepted
+   ↓
+Scheduled
+   ↓
+In Progress
+   ↓
+Completed
+Other possible statuses:
+Declined 
+Cancelled by Client 
+Cancelled by Veterinarian 
+Expired 
+No Show 
+Rescheduled 
+9. Communication
+Communication should only become available after the veterinarian accepts the consultation.
+9.1 Chat
+Client and veterinarian can communicate through an in-app chat.
+Features:
+Text messages 
+Image attachments 
+File attachments 
+Message timestamps 
+Read/unread status 
+Online/offline status 
+Notifications 
+Consultation-specific chat history 
+The chat should be associated with the specific consultation.
+Example:
+Consultation #10025
+    ├── Client
+    ├── Veterinarian
+    ├── Pet
+    └── Chat History
+This prevents unrelated conversations from being mixed together.
+10. Video Consultation
+After the consultation is accepted and reaches its scheduled time, the client and veterinarian can start a video consultation.
+Video Features
+Start video call 
+End video call 
+Microphone on/off 
+Camera on/off 
+Connection status 
+Optional screen sharing 
+Optional image/file sharing 
+Call duration 
+The video call should only be accessible to the client and veterinarian assigned to that consultation.
+Recommended Architecture
+The application should use a video communication service/API rather than building the entire video infrastructure from scratch.
+The backend should generate/authorize the consultation session and provide secure access to the video room.
+11. Consultation Record
+After a consultation, the veterinarian should be able to create a consultation record.
+Consultation Notes
+Symptoms 
+Assessment 
+Recommendations 
+Treatment advice 
+Medication information 
+Follow-up instructions 
+Additional notes 
+The record should be associated with:
+Client
+   ↓
+Pet
+   ↓
+Veterinarian
+   ↓
+Consultation
+   ↓
+Consultation Record
+Clients should be able to view their pet's previous consultation records.
+12. Consultation History
+Client
+Clients can view:
+Upcoming consultations 
+Previous consultations 
+Cancelled consultations 
+Veterinarian information 
+Pet involved 
+Consultation date/time 
+Consultation status 
+Consultation notes 
+Chat history 
+Veterinarian
+Veterinarians can view:
+Upcoming consultations 
+Active consultations 
+Completed consultations 
+Cancelled consultations 
+Client information 
+Pet information 
+Previous consultation records 
+13. Notifications
+The system should notify users about important events.
+Client Notifications
+Veterinarian accepted request 
+Veterinarian declined request 
+Consultation reminder 
+Consultation starting soon 
+New chat message 
+Video consultation available 
+Consultation completed 
+Consultation notes available 
+Booking cancelled/rescheduled 
+Veterinarian Notifications
+New consultation request 
+Client cancelled 
+Upcoming consultation 
+Consultation reminder 
+New chat message 
+Client joined video consultation 
+Notifications can initially be:
+In-app notifications 
+Email notifications 
+Mobile push notifications can be added in Phase 2.
+14. Administrator Panel
+The administrator will manage the platform.
+Veterinarian Management
+Admin can:
+View veterinarians 
+Review applications 
+Verify documents 
+Approve veterinarians 
+Reject applications 
+Suspend accounts 
+Reactivate accounts 
+Update veterinarian information 
+Client Management
+Admin can:
+View clients 
+View account status 
+Suspend accounts 
+Reactivate accounts 
+Pet Management
+Admin can manage:
+Animal types 
+Breeds 
+Other configurable pet information 
+Consultation Management
+Admin can:
+View consultations 
+Search consultations 
+Filter by status 
+View assigned veterinarian 
+View client 
+View pet 
+View consultation date/time 
+Handle disputes/cancellations where required 
+15. Dashboard
+Client Dashboard
+Example:
+Welcome, John
+My Pets
+[ Max ] [ Bella ] [ Add Pet ]
+Upcoming Consultation
+--------------------------------
+Dr. Maria Santos
+Max
+September 20, 2026
+3:00 PM
+[Enter Consultation]
+--------------------------------
+[Find a Veterinarian]
+Recent Consultations
+Veterinarian Dashboard
+Welcome, Dr. Maria
+Today's Consultations
+--------------------------------
+3:00 PM
+John Doe
+Max - Dog
+[View Consultation]
+--------------------------------
+Pending Requests
+--------------------------------
+2 New Requests
+[View Requests]
+--------------------------------
+Today's Availability
+[Online]
+Admin Dashboard
+Dashboard
+Veterinarians
+120
+Pending Verification
+8
+Clients
+2,450
+Today's Consultations
+76
+Active Consultations
+12
+16. User Roles & Permissions
+Feature
+Client
+Veterinarian
+Admin
+Create account
+✓
+✓
+—
+Manage profile
+✓
+✓
+✓
+Add pets
+✓
+—
+✓
+Register as veterinarian
+—
+✓
+—
+Upload credentials
+—
+✓
+—
+Verify veterinarian
+—
+—
+✓
+Search veterinarians
+✓
+—
+✓
+Request consultation
+✓
+—
+✓
+Accept consultation
+—
+✓
+✓
+Chat
+✓
+✓
+✓
+Video call
+✓
+✓
+✓
+Consultation notes
+View
+Create/Edit
+View
+Consultation history
+✓
+✓
+✓
+Manage users
+—
+—
+✓
+17. Authentication & Security
+The system should include:
+Secure registration 
+Email verification 
+Password reset 
+Secure password storage 
+Login/logout 
+Session management 
+Role-based access control 
+API authentication 
+HTTPS 
+Secure document storage 
+Access control for consultation records 
+Audit logs for sensitive actions 
+Veterinarian documents should not be publicly accessible.
+18. Database Structure
+A possible initial database structure:
+users
+ ├── clients
+ ├── veterinarians
+ └── administrators
+pets
+ └── client_id
+animal_types
+breeds
+veterinarian_documents
+ └── veterinarian_id
+veterinarian_specializations
+veterinarian_availability
+consultations
+ ├── client_id
+ ├── veterinarian_id
+ └── pet_id
+consultation_messages
+ └── consultation_id
+consultation_calls
+ └── consultation_id
+consultation_records
+ └── consultation_id
+notifications
+reviews
+audit_logs
+19. Location System
+The location system should store enough information to support proximity searching.
+For example:
+country
+province
+city
+municipality
+latitude
+longitude
+The system can calculate approximate distance between client and veterinarian.
+Example:
+Client
+14.6760, 121.0437
+Veterinarian A
+14.6500, 121.0500
+Distance: ~3.0 km
+The search results can then be ordered by distance.
+Important: location matching should be based on coordinates or standardized geographic data rather than simply comparing text such as "Quezon City".
+20. Payments — Future Module
+If the platform will charge for consultations, payment should be designed as a separate module.
+Possible flow:
+Client
+ ↓
+Select Veterinarian
+ ↓
+Select Schedule
+ ↓
+Consultation Fee
+ ↓
+Payment
+ ↓
+Consultation Request
+ ↓
+Veterinarian Accepts
+ ↓
+Consultation
+Payment integration can be added during or after the initial MVP depending on business requirements.
+21. Web Application — Phase 1
+The first release should focus on the essential workflow.
+MVP Features
+Client
+Registration/login 
+Profile 
+Pet management 
+Veterinarian search 
+Location-based veterinarian suggestions 
+Veterinarian profile 
+Consultation request 
+Booking status 
+Chat 
+Video call 
+Consultation history 
+Notifications 
+Veterinarian
+Registration 
+Document submission 
+Profile 
+Verification status 
+Availability/schedule 
+Consultation requests 
+Accept/decline booking 
+Client/pet information 
+Chat 
+Video call 
+Consultation notes 
+Consultation history 
+Admin
+Dashboard 
+Veterinarian verification 
+User management 
+Consultation management 
+Animal/breed management 
+Basic reports 
+22. Phase 2 — Mobile Application
+After the web application is stable, create:
+Android App
+For:
+Clients 
+Veterinarians 
+iOS App
+For:
+Clients 
+Veterinarians 
+The mobile apps should connect to the same backend API used by the web application.
+Architecture:
+                 ┌──────────────────┐
+                 │     Backend      │
+                 │      API         │
+                 └────────┬─────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            │             │             │
+            ▼             ▼             ▼
+       Web Client     Android App    iOS App
+            │             │             │
+            └─────────────┼─────────────┘
+                          │
+                 ┌────────▼─────────┐
+                 │     Database     │
+                 └──────────────────┘
+This avoids building the business logic separately for web, Android, and iOS.
+23. Main Client Workflow
+The complete client workflow should be:
+Register
+   ↓
+Create Profile
+   ↓
+Add Pet
+   ↓
+Select Pet
+   ↓
+Find Veterinarian
+   ↓
+View Suggested Veterinarians
+   ↓
+View Veterinarian Profile
+   ↓
+Select Date/Time
+   ↓
+Submit Consultation Request
+   ↓
+Waiting for Acceptance
+   ↓
+Veterinarian Accepts
+   ↓
+Booking Confirmed
+   ↓
+Chat / Video Consultation
+   ↓
+Veterinarian Creates Consultation Notes
+   ↓
+Consultation Completed
+   ↓
+View Consultation History
+24. Main Veterinarian Workflow
+Register
+   ↓
+Submit Professional Documents
+   ↓
+Admin Verification
+   ↓
+Account Approved
+   ↓
+Complete Profile
+   ↓
+Set Availability
+   ↓
+Receive Consultation Request
+   ↓
+Review Client + Pet
+   ↓
+Accept / Decline
+   ↓
+Booking Confirmed
+   ↓
+Chat / Video Consultation
+   ↓
+Create Consultation Notes
+   ↓
+Complete Consultation
+25. Recommended Development Priority
+I would build it in this order:
+Phase 1 — Foundation
+Database 
+Authentication 
+Client accounts 
+Veterinarian accounts 
+Admin accounts 
+Role/permission system 
+Phase 2 — Profiles7. Client profile8. Pet management9. Veterinarian profile10. Veterinarian document verification11. Animal/breed management
+Phase 3 — Consultation12. Veterinarian search13. Location-based suggestions14. Availability15. Booking/request system16. Accept/decline workflow17. Consultation status
+Phase 4 — Communication18. Chat19. File/image sharing20. Video consultation21. Notifications
+Phase 5 — Records22. Consultation notes23. Consultation history24. Reviews/ratings25. Reports
+Phase 6 — Mobile26. Backend API stabilization27. Android application28. iOS application29. Push notifications30. Mobile-specific features

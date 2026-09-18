@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Http\Controllers\Vet;
+
+use App\Http\Controllers\Controller;
+use App\Models\VetAvailability;
+use App\Models\VetProfile;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class ScheduleController extends Controller
+{
+    public function index()
+    {
+        $user = Auth::user();
+        $profile = $user->vetProfile;
+        $availabilities = VetAvailability::where('user_id', $user->id)->orderBy('day_of_week')->get();
+
+        return view('vet.schedule.index', compact('user', 'profile', 'availabilities'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'consultation_fee' => 'required|numeric|min:0',
+            'clinic_name' => 'nullable|string|max:255',
+            'clinic_address' => 'nullable|string|max:255',
+            'expertise' => 'required|string',
+            'bio' => 'nullable|string',
+            'languages' => 'nullable|string',
+        ]);
+
+        $profile = Auth::user()->vetProfile;
+        if ($profile) {
+            $profile->update($request->only([
+                'consultation_fee', 'clinic_name', 'clinic_address', 'expertise', 'bio', 'languages'
+            ]));
+        }
+
+        return back()->with('success', 'Profile & consultation settings updated successfully.');
+    }
+
+    public function storeAvailability(Request $request)
+    {
+        $request->validate([
+            'day_of_week' => 'required|integer|between:0,6',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+        ]);
+
+        VetAvailability::updateOrCreate(
+            ['user_id' => Auth::id(), 'day_of_week' => $request->day_of_week],
+            [
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'is_active' => true,
+            ]
+        );
+
+        return back()->with('success', 'Availability slot saved.');
+    }
+
+    public function deleteAvailability(VetAvailability $availability)
+    {
+        if ($availability->user_id !== Auth::id()) {
+            abort(403);
+        }
+        $availability->delete();
+        return back()->with('success', 'Slot removed.');
+    }
+}
