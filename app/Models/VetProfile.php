@@ -18,6 +18,8 @@ class VetProfile extends Model
         'expertise',
         'animals_handled',
         'consultation_fee',
+        'additional_pet_fee',
+        'additional_pet_duration',
         'bio',
         'languages',
         'city',
@@ -32,7 +34,23 @@ class VetProfile extends Model
         'animals_handled' => 'array',
         'is_available' => 'boolean',
         'consultation_fee' => 'decimal:2',
+        'additional_pet_fee' => 'decimal:2',
+        'additional_pet_duration' => 'integer',
     ];
+
+    public function getEffectiveAdditionalPetFeeAttribute(): float
+    {
+        return $this->additional_pet_fee !== null 
+            ? (float) $this->additional_pet_fee 
+            : (float) \App\Models\SystemSetting::get('default_additional_pet_fee', 250.00);
+    }
+
+    public function getEffectiveAdditionalPetDurationAttribute(): int
+    {
+        return $this->additional_pet_duration !== null 
+            ? (int) $this->additional_pet_duration 
+            : (int) \App\Models\SystemSetting::get('default_additional_pet_duration', 15);
+    }
 
     public function user()
     {

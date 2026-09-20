@@ -19,6 +19,7 @@
                 <h1 class="font-bold text-base leading-tight">Live Video Consultation</h1>
                 <p class="text-xs text-slate-300">
                     Room: <span class="font-mono text-brand-300">{{ $call->room_name }}</span> • 
+                    Pets: <strong class="text-amber-300">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong> • 
                     Client: <strong class="text-white">{{ $consultation->client->name }}</strong> • 
                     Vet: <strong class="text-white">Dr. {{ $consultation->vet->name }}</strong>
                 </p>

@@ -35,11 +35,11 @@
         <div class="flex flex-wrap items-center gap-2">
             @if($consultation->status === 'pending')
                 <!-- Accept Button -->
-                <form method="POST" action="{{ route('vet.requests.accept', $consultation) }}" onsubmit="return confirm('Accept this consultation? {{ $bookingCreditsCost }} credits will be deducted from client.');">
+                <form method="POST" action="{{ route('vet.requests.accept', $consultation) }}" onsubmit="return confirm('Accept this consultation? {{ $consultation->credits_cost ?: $bookingCreditsCost }} credits will be deducted from client.');">
                     @csrf
                     <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center space-x-1.5">
                         <i class="fa-solid fa-circle-check"></i>
-                        <span>Accept Request (Confirm)</span>
+                        <span>Accept Request (Deduct {{ $consultation->credits_cost ?: $bookingCreditsCost }} Credits)</span>
                     </button>
                 </form>
 
@@ -100,31 +100,65 @@
     @endif
 
     <!-- Pet Details & History Card -->
-    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-5">
-        <h2 class="text-lg font-bold text-slate-800 flex items-center">
-            <i class="fa-solid fa-paw text-brand-600 mr-2"></i> Patient Information: {{ $consultation->pet->name }}
-        </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <div><span class="text-slate-400 block">Animal Category</span><strong class="text-slate-800">{{ $consultation->pet->animalType->name ?? 'Pet' }}</strong></div>
-            <div><span class="text-slate-400 block">Breed</span><strong class="text-slate-800">{{ $consultation->pet->breed_name }}</strong></div>
-            <div><span class="text-slate-400 block">Sex & Age</span><strong class="text-slate-800">{{ $consultation->pet->sex }} • {{ $consultation->pet->age_text ?: 'N/A' }}</strong></div>
-            <div><span class="text-slate-400 block">Weight</span><strong class="text-slate-800">{{ $consultation->pet->weight ?: 'N/A' }}</strong></div>
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                <i class="fa-solid fa-paw text-brand-600 mr-2"></i> Patient(s) for this Consultation ({{ $consultation->all_pets->count() }})
+            </h2>
+            <div class="text-xs text-slate-600 flex items-center space-x-3">
+                <span>Total Time: <strong class="text-slate-800">{{ $consultation->duration_minutes ?: 15 }} mins</strong></span>
+                <span>•</span>
+                <span>Total Fee: <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }}</strong></span>
+            </div>
         </div>
 
-        <div class="space-y-3 text-xs text-slate-700">
-            <div>
-                <strong class="text-slate-800 block mb-1">Reason for Consultation:</strong>
-                <p class="bg-slate-50 p-4 rounded-2xl border border-slate-200 leading-relaxed">{{ $consultation->reason }}</p>
-            </div>
-            @if($consultation->pet->allergies)
-                <p><strong class="text-rose-600">Allergies:</strong> {{ $consultation->pet->allergies }}</p>
-            @endif
-            @if($consultation->pet->existing_conditions)
-                <p><strong class="text-amber-600">Existing Conditions:</strong> {{ $consultation->pet->existing_conditions }}</p>
-            @endif
-            @if($consultation->pet->vaccination_info)
-                <p><strong class="text-emerald-700">Vaccinations:</strong> {{ $consultation->pet->vaccination_info }}</p>
-            @endif
+        <div class="space-y-4">
+            @foreach($consultation->all_pets as $pet)
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 font-bold flex items-center justify-center text-xs">
+                                <i class="fa-solid {{ $pet->animalType ? $pet->animalType->icon : 'fa-paw' }}"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">{{ $pet->name }}</h3>
+                                <span class="text-[11px] text-slate-500">{{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }}</span>
+                            </div>
+                        </div>
+                        @if($pet->id === $consultation->pet_id)
+                            <span class="text-[10px] bg-brand-600 text-white font-bold px-2 py-0.5 rounded-full">Primary Pet</span>
+                        @else
+                            <span class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">Additional Pet</span>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] bg-white p-3 rounded-xl border border-slate-200">
+                        <div><span class="text-slate-400 block">Sex</span><strong class="text-slate-700">{{ $pet->sex }}</strong></div>
+                        <div><span class="text-slate-400 block">Age</span><strong class="text-slate-700">{{ $pet->age_text ?: 'N/A' }}</strong></div>
+                        <div><span class="text-slate-400 block">Weight</span><strong class="text-slate-700">{{ $pet->weight ?: 'N/A' }}</strong></div>
+                        <div><span class="text-slate-400 block">Color</span><strong class="text-slate-700">{{ $pet->color ?: 'N/A' }}</strong></div>
+                    </div>
+
+                    @if($pet->allergies || $pet->existing_conditions || $pet->vaccination_info)
+                        <div class="text-xs space-y-1 pt-1 text-slate-600 border-t border-slate-200/50">
+                            @if($pet->allergies)
+                                <p><strong class="text-rose-600">Allergies:</strong> {{ $pet->allergies }}</p>
+                            @endif
+                            @if($pet->existing_conditions)
+                                <p><strong class="text-amber-600">Existing Conditions:</strong> {{ $pet->existing_conditions }}</p>
+                            @endif
+                            @if($pet->vaccination_info)
+                                <p><strong class="text-emerald-700">Vaccinations:</strong> {{ $pet->vaccination_info }}</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+
+        <div class="space-y-2 text-xs text-slate-700 border-t border-slate-100 pt-4">
+            <strong class="text-slate-800 block">Reason for Consultation:</strong>
+            <p class="bg-slate-50 p-4 rounded-2xl border border-slate-200 leading-relaxed">{{ $consultation->reason }}</p>
         </div>
 
         <!-- Attachments -->

@@ -52,6 +52,11 @@ class Pet extends Model
         return $this->hasMany(Consultation::class, 'pet_id');
     }
 
+    public function consultationSessions()
+    {
+        return $this->belongsToMany(Consultation::class, 'consultation_pets')->withPivot('is_primary')->withTimestamps();
+    }
+
     public function getBreedNameAttribute()
     {
         if ($this->breed) {

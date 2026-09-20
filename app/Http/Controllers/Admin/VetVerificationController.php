@@ -104,4 +104,27 @@ class VetVerificationController extends Controller
         $vet->update(['status' => 'active']);
         return back()->with('success', 'User account reactivated.');
     }
+
+    public function updateFees(Request $request, User $vet)
+    {
+        if (!$vet->isVet()) {
+            abort(404);
+        }
+
+        $request->validate([
+            'consultation_fee' => 'required|numeric|min:0',
+            'additional_pet_fee' => 'required|numeric|min:0',
+            'additional_pet_duration' => 'required|integer|min:1|max:120',
+        ]);
+
+        if ($vet->vetProfile) {
+            $vet->vetProfile->update([
+                'consultation_fee' => $request->consultation_fee,
+                'additional_pet_fee' => $request->additional_pet_fee,
+                'additional_pet_duration' => $request->additional_pet_duration,
+            ]);
+        }
+
+        return back()->with('success', "Updated consultation rates and duration for Dr. {$vet->name}.");
+    }
 }

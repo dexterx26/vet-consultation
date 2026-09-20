@@ -13,7 +13,7 @@
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Consultation Fee (₱) *</label>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Base Consultation Fee (₱) *</label>
                     <input type="number" step="0.01" name="consultation_fee" value="{{ old('consultation_fee', $profile->consultation_fee) }}" required
                         class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
                 </div>
@@ -21,6 +21,32 @@
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Clinic / Hospital Name</label>
                     <input type="text" name="clinic_name" value="{{ old('clinic_name', $profile->clinic_name) }}"
                         class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+            </div>
+
+            <!-- Additional Pet Pricing & Time Settings -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-brand-50/50 p-4 rounded-xl border border-brand-100">
+                <div>
+                    <label class="block text-xs font-bold text-brand-900 uppercase tracking-wider mb-1">
+                        Additional Pet Extra Fee (₱) *
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
+                        <input type="number" step="0.01" name="additional_pet_fee" value="{{ old('additional_pet_fee', $profile->effective_additional_pet_fee) }}" required min="0"
+                            class="w-full pl-7 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                    </div>
+                    <span class="text-[11px] text-slate-500 mt-1 block">Fee added for each additional pet included in a consultation.</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-brand-900 uppercase tracking-wider mb-1">
+                        Additional Pet Extra Time (Minutes) *
+                    </label>
+                    <div class="relative">
+                        <input type="number" name="additional_pet_duration" value="{{ old('additional_pet_duration', $profile->effective_additional_pet_duration) }}" required min="1" max="120"
+                            class="w-full pr-12 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                        <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">mins</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 mt-1 block">Extra duration added to the video call / chat session for each extra pet.</span>
                 </div>
             </div>
 

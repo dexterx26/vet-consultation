@@ -39,31 +39,31 @@ class RequestController extends Controller
             abort(403);
         }
 
-        $bookingCreditsCost = (int) SystemSetting::get('booking_credits_cost', 300);
+        $creditsToDeduct = $consultation->credits_cost ?: (int) SystemSetting::get('booking_credits_cost', 300);
         $client = $consultation->client;
 
         // Check if client has sufficient credits upon confirmation
-        if (!$client->hasSufficientCredits($bookingCreditsCost)) {
-            return back()->with('error', "Cannot accept booking: Client {$client->name} does not have enough credits ({$client->credits} available, {$bookingCreditsCost} required). Client has been notified.");
+        if (!$client->hasSufficientCredits($creditsToDeduct)) {
+            return back()->with('error', "Cannot accept booking: Client {$client->name} does not have enough credits ({$client->credits} available, {$creditsToDeduct} required). Client has been notified.");
         }
 
         // Deduct credits from client
-        $client->deductCredits($bookingCreditsCost, $consultation->id, "Booking confirmation for #{$consultation->consultation_number}");
+        $client->deductCredits($creditsToDeduct, $consultation->id, "Booking confirmation for #{$consultation->consultation_number}");
 
         $consultation->update([
             'status' => 'accepted',
-            'credits_deducted' => $bookingCreditsCost,
+            'credits_deducted' => $creditsToDeduct,
         ]);
 
         AppNotification::create([
             'user_id' => $consultation->client_id,
             'title' => 'Consultation Confirmed! 🎉',
-            'message' => 'Dr. ' . Auth::user()->name . ' accepted your consultation request for ' . $consultation->pet->name . '. ' . $bookingCreditsCost . ' credits were deducted. You can now message or start your video call at the scheduled time.',
+            'message' => 'Dr. ' . Auth::user()->name . ' accepted your consultation request for ' . $consultation->pet->name . '. ' . $creditsToDeduct . ' credits were deducted. You can now message or start your video call at the scheduled time.',
             'type' => 'success',
             'is_read' => false,
         ]);
 
-        return back()->with('success', "Consultation accepted! {$bookingCreditsCost} credits deducted from client balance. You can now start communicating with the client.");
+        return back()->with('success', "Consultation accepted! {$creditsToDeduct} credits deducted from client balance. You can now start communicating with the client.");
     }
 
     public function suggestReschedule(Request $request, Consultation $consultation)

@@ -21,7 +21,9 @@
             </div>
             <h1 class="text-2xl font-bold text-slate-800 mt-2">Consultation with Dr. {{ $consultation->vet->name }}</h1>
             <p class="text-xs text-slate-500 mt-1">
-                Pet: <strong class="text-slate-700">{{ $consultation->pet->name }}</strong> • 
+                Pets: <strong class="text-slate-700">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong> • 
+                Duration: <strong class="text-slate-700">{{ $consultation->duration_minutes ?: 15 }} mins</strong> • 
+                Fee: <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }}</strong> •
                 Scheduled for <strong class="text-slate-700">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong>
             </p>
         </div>
@@ -201,15 +203,36 @@
 
             <!-- Pet Details Card -->
             <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-3">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pet Patient</h3>
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 font-bold flex items-center justify-center border border-brand-100 text-lg">
-                        <i class="fa-solid {{ $consultation->pet->animalType ? $consultation->pet->animalType->icon : 'fa-paw' }}"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-sm">{{ $consultation->pet->name }}</h4>
-                        <p class="text-[11px] text-slate-500">{{ $consultation->pet->breed_name }}</p>
-                    </div>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Booked Pet Patient(s)</h3>
+                    <span class="text-[10px] font-bold bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full border border-brand-200">
+                        {{ $consultation->all_pets->count() }} {{ Str::plural('Pet', $consultation->all_pets->count()) }}
+                    </span>
+                </div>
+                
+                <div class="space-y-2.5 pt-1">
+                    @foreach($consultation->all_pets as $pet)
+                        <div class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 font-bold flex items-center justify-center border border-brand-100 text-sm shrink-0 overflow-hidden">
+                                @if($pet->photo)
+                                    <img src="{{ asset('storage/' . $pet->photo) }}" class="w-full h-full object-cover">
+                                @else
+                                    <i class="fa-solid {{ $pet->animalType ? $pet->animalType->icon : 'fa-paw' }}"></i>
+                                @endif
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center space-x-1.5">
+                                    <h4 class="font-bold text-slate-800 text-xs truncate">{{ $pet->name }}</h4>
+                                    @if($pet->id === $consultation->pet_id)
+                                        <span class="text-[9px] bg-brand-600 text-white font-bold px-1.5 py-0.5 rounded">Primary</span>
+                                    @else
+                                        <span class="text-[9px] bg-slate-200 text-slate-700 font-medium px-1.5 py-0.5 rounded">Extra Pet</span>
+                                    @endif
+                                </div>
+                                <p class="text-[10px] text-slate-500">{{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }}</p>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>

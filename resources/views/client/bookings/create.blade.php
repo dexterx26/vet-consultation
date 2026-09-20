@@ -3,63 +3,68 @@
 @section('title', 'Book Consultation — Dr. ' . $vet->name)
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="bookingCalendarComponent({{ $vet->id }}, {{ $bookingCreditsCost }}, {{ $clientCredits }})">
+<div class="max-w-3xl mx-auto space-y-6" x-data="bookingCalendarComponent({{ $vet->id }}, {{ $baseCreditsCost }}, {{ $addCreditsCost }}, {{ $clientCredits }}, {{ $baseFee }}, {{ $addFee }}, {{ $baseDuration }}, {{ $addDuration }}, {{ $preselectedPetId }})">
 
     <!-- Back button & Page Title -->
     <div class="flex items-center space-x-3">
-        <a href="{{ route('client.vets.show', $vet) }}" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-all shadow-sm">
+        <a href="{{ route('client.vets.show', ['vet' => $vet->id, 'pet_id' => $preselectedPetId]) }}" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-all shadow-sm">
             <i class="fa-solid fa-arrow-left text-xs"></i>
         </a>
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Book Consultation</h1>
-            <p class="text-xs text-slate-500">Schedule a real-time teleconsultation with Dr. {{ $vet->name }}</p>
+            <p class="text-xs text-slate-500">Schedule a teleconsultation with Dr. {{ $vet->name }}</p>
         </div>
     </div>
 
     <!-- Credits & Price Information Card -->
     <div class="bg-gradient-to-r from-navy-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center space-x-4">
-            <div class="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 text-amber-400 flex items-center justify-center text-2xl shadow-inner">
+        <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 text-amber-400 flex items-center justify-center text-2xl shadow-inner shrink-0 mt-1">
                 <i class="fa-solid fa-coins"></i>
             </div>
             <div>
-                <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Consultation Cost</span>
+                <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Consultation Cost & Duration</span>
                 <div class="flex items-baseline space-x-2">
-                    <span class="text-2xl font-black text-amber-400 font-mono">{{ $bookingCreditsCost }}</span>
+                    <span class="text-2xl font-black text-amber-400 font-mono" x-text="totalCreditsCost"></span>
                     <span class="text-xs text-slate-300 font-semibold">Credits</span>
+                    <span class="text-slate-400 text-xs">•</span>
+                    <span class="text-sm font-bold text-emerald-400 font-mono">₱<span x-text="totalFee.toFixed(2)"></span></span>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-0.5">
-                    <i class="fa-solid fa-shield-check text-emerald-400 mr-1"></i>
-                    Credits will only be deducted <strong>upon booking confirmation</strong>.
-                </p>
+                <div class="flex items-center space-x-2 text-[11px] text-slate-300 mt-1">
+                    <span class="bg-white/10 px-2 py-0.5 rounded text-amber-300 font-medium">
+                        <i class="fa-regular fa-clock mr-1"></i> <span x-text="totalDuration"></span> mins total time
+                    </span>
+                    <span class="text-slate-400">•</span>
+                    <span><span x-text="extraPetCount + 1"></span> pet(s) included</span>
+                </div>
             </div>
         </div>
 
-        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 sm:text-right flex sm:flex-col justify-between items-center sm:items-end">
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 sm:text-right flex sm:flex-col justify-between items-center sm:items-end shrink-0">
             <span class="text-[11px] text-slate-400 uppercase font-semibold">Your Available Balance</span>
-            <span class="text-xl font-black font-mono {{ $clientCredits >= $bookingCreditsCost ? 'text-emerald-400' : 'text-rose-400' }}">
+            <span class="text-xl font-black font-mono" :class="hasSufficientCredits ? 'text-emerald-400' : 'text-rose-400'">
                 {{ number_format($clientCredits) }} Credits
             </span>
-            @if($clientCredits < $bookingCreditsCost)
+            <template x-if="!hasSufficientCredits">
                 <span class="text-[10px] text-rose-400 font-bold mt-1 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
                     <i class="fa-solid fa-triangle-exclamation mr-1"></i> Needs Top Up
                 </span>
-            @else
+            </template>
+            <template x-if="hasSufficientCredits">
                 <span class="text-[10px] text-emerald-400 font-bold mt-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                     <i class="fa-solid fa-circle-check mr-1"></i> Sufficient Credits
                 </span>
-            @endif
+            </template>
         </div>
     </div>
 
-    @if($clientCredits < $bookingCreditsCost)
-        <div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg"></i>
-                <span>You do not have enough credits to book this consultation (Required: <strong>{{ $bookingCreditsCost }} credits</strong>, Current: <strong>{{ $clientCredits }} credits</strong>). Please ask an administrator to add credits to your account.</span>
-            </div>
+    <!-- Insufficient Credits Alert -->
+    <div x-show="!hasSufficientCredits" class="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg shrink-0"></i>
+            <span>You do not have enough credits for this booking (Required: <strong x-text="totalCreditsCost"></strong> credits, Current: <strong>{{ $clientCredits }} credits</strong>). Please ask an administrator to top up your account.</span>
         </div>
-    @endif
+    </div>
 
     <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-8 space-y-6">
 
@@ -69,19 +74,101 @@
             <input type="hidden" name="scheduled_date" :value="selectedDate">
             <input type="hidden" name="scheduled_time" :value="selectedTime">
 
-            <!-- Step 1: Select Pet -->
-            <div>
-                <label for="pet_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    1. Select Pet for Consultation *
-                </label>
-                <select name="pet_id" id="pet_id" required class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-3 shadow-sm font-medium text-slate-800">
-                    @foreach($pets as $pet)
-                        <option value="{{ $pet->id }}">{{ $pet->name }} ({{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }})</option>
-                    @endforeach
-                </select>
+            <!-- Step 1: Select Primary Pet & Multi-Pet Additions -->
+            <div class="space-y-4">
+                <div>
+                    <label for="pet_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        1. Primary Pet for Consultation *
+                    </label>
+                    <select name="pet_id" id="pet_id" x-model="primaryPetId" @change="onPrimaryPetChange()" required
+                            class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-3 shadow-sm font-medium text-slate-800">
+                        @foreach($pets as $pet)
+                            @if($pet->is_handled)
+                                <option value="{{ $pet->id }}" {{ $preselectedPetId == $pet->id ? 'selected' : '' }}>
+                                    🐾 {{ $pet->name }} ({{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }})
+                                </option>
+                            @else
+                                <option value="{{ $pet->id }}" disabled class="text-slate-400 bg-slate-50">
+                                    ⚠️ {{ $pet->name }} ({{ $pet->animalType->name ?? 'Pet' }}) — [Dr. {{ $vet->name }} does not handle {{ $pet->animalType->name ?? 'this animal' }}]
+                                </option>
+                            @endif
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1 flex items-center">
+                        <i class="fa-solid fa-stethoscope text-brand-600 mr-1.5"></i>
+                        <span>Doctor handles: <strong class="text-slate-700">{{ implode(', ', $animalsHandled) }}</strong></span>
+                    </p>
+                </div>
+
+                <!-- Multi-Pet Addition Section -->
+                @if($pets->count() > 1)
+                    <div class="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                                    <i class="fa-solid fa-plus-circle text-brand-600 mr-1.5"></i> Add Another Pet to this Consultation
+                                </h4>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    If the doctor handles dogs and cats, you can add another pet in that different category. Each succeeding pet adds <strong>+₱{{ number_format($addFee, 2) }}</strong>, <strong>+{{ $addDuration }} mins</strong> duration, and <strong>+{{ $addCreditsCost }} credits</strong>.
+                                </p>
+                            </div>
+                            <span class="text-[10px] font-bold bg-brand-100 text-brand-800 px-2 py-0.5 rounded-full" x-text="extraPetCount + ' extra added'"></span>
+                        </div>
+
+                        <div class="space-y-2 pt-1">
+                            @foreach($pets as $otherPet)
+                                <div x-show="primaryPetId != {{ $otherPet->id }}" class="transition-all">
+                                    @if($otherPet->is_handled)
+                                        <label class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 hover:border-brand-400 cursor-pointer transition-all shadow-2xs has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/30">
+                                            <div class="flex items-center space-x-3">
+                                                <input type="checkbox" name="additional_pet_ids[]" value="{{ $otherPet->id }}"
+                                                       x-model="selectedAdditionalPetIds"
+                                                       class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                                                <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                                    <i class="fa-solid {{ $otherPet->animalType ? $otherPet->animalType->icon : 'fa-paw' }}"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="font-bold text-slate-800 text-xs block">{{ $otherPet->name }}</span>
+                                                    <span class="text-[10px] text-slate-500">{{ $otherPet->animalType->name ?? 'Pet' }} • {{ $otherPet->breed_name }} ({{ $otherPet->sex }})</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-right text-[11px]">
+                                                <span class="font-extrabold text-emerald-700 block">+₱{{ number_format($addFee, 2) }}</span>
+                                                <span class="text-[10px] text-slate-400">+{{ $addDuration }} mins • +{{ $addCreditsCost }} pts</span>
+                                            </div>
+                                        </label>
+                                    @else
+                                        <div class="flex items-center justify-between p-2.5 bg-slate-100/60 rounded-xl border border-slate-200/60 text-slate-400 opacity-70 cursor-not-allowed text-xs">
+                                            <div class="flex items-center space-x-3">
+                                                <input type="checkbox" disabled class="w-4 h-4 text-slate-300 rounded border-slate-300 cursor-not-allowed">
+                                                <div class="w-8 h-8 rounded-lg bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">
+                                                    <i class="fa-solid fa-ban"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="font-semibold text-slate-500 text-xs block">{{ $otherPet->name }} ({{ $otherPet->animalType->name ?? 'Pet' }})</span>
+                                                    <span class="text-[10px] text-slate-400">Doctor does not handle {{ $otherPet->animalType->name ?? 'this category' }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-medium">Not Handled</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Dynamic Multi-Pet Summary Banner -->
+                        <div x-show="extraPetCount > 0" class="bg-brand-50 border border-brand-200 rounded-xl p-3 text-xs text-brand-900 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-sparkles text-brand-600 text-sm"></i>
+                                <span>Multi-Pet Consultation Active: <strong x-text="extraPetCount + 1"></strong> pets will be examined in a combined <strong x-text="totalDuration"></strong>-minute session.</span>
+                            </div>
+                            <span class="font-extrabold text-brand-800" x-text="'₱' + totalFee.toFixed(2)"></span>
+                        </div>
+                    </div>
+                @endif
             </div>
 
-            <!-- Step 2: Consultation Type -->
+            <!-- Step 2: Consultation Mode -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     2. Consultation Mode *
@@ -272,11 +359,11 @@
             <!-- Submit Button -->
             <div class="pt-4 border-t border-slate-100">
                 <button type="submit"
-                        :disabled="!selectedTime || clientCredits < bookingCreditsCost"
-                        :class="(!selectedTime || clientCredits < bookingCreditsCost) ? 'opacity-50 cursor-not-allowed bg-slate-400' : 'bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/30'"
+                        :disabled="!selectedTime || !hasSufficientCredits"
+                        :class="(!selectedTime || !hasSufficientCredits) ? 'opacity-50 cursor-not-allowed bg-slate-400' : 'bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/30'"
                         class="w-full text-white font-bold py-4 rounded-2xl transition-all text-sm flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-paper-plane"></i>
-                    <span x-text="clientCredits < bookingCreditsCost ? 'Insufficient Credits to Book' : (selectedTime ? 'Submit Consultation Request' : 'Please Select a Time Slot')"></span>
+                    <span x-text="!hasSufficientCredits ? ('Insufficient Credits (' + totalCreditsCost + ' required)') : (selectedTime ? ('Submit Request (' + (extraPetCount + 1) + ' Pet' + (extraPetCount > 0 ? 's' : '') + ' • ' + totalCreditsCost + ' Credits)') : 'Please Select a Time Slot')"></span>
                 </button>
             </div>
         </form>
@@ -285,11 +372,18 @@
 
 @push('scripts')
 <script>
-    function bookingCalendarComponent(vetId, bookingCreditsCost, clientCredits) {
+    function bookingCalendarComponent(vetId, baseCreditsCost, addCreditsCost, clientCredits, baseFee, addFee, baseDuration, addDuration, initialPetId) {
         return {
             vetId: vetId,
-            bookingCreditsCost: bookingCreditsCost,
-            clientCredits: clientCredits,
+            baseCreditsCost: Number(baseCreditsCost),
+            addCreditsCost: Number(addCreditsCost),
+            clientCredits: Number(clientCredits),
+            baseFee: Number(baseFee),
+            addFee: Number(addFee),
+            baseDuration: Number(baseDuration),
+            addDuration: Number(addDuration),
+            primaryPetId: initialPetId,
+            selectedAdditionalPetIds: [],
             selectedDate: '{{ date("Y-m-d") }}',
             selectedTime: '',
             selectedDayFormatted: '',
@@ -299,6 +393,30 @@
             loadingSlots: false,
             pollTimer: null,
             upcomingDays: [],
+
+            get extraPetCount() {
+                return this.selectedAdditionalPetIds.length;
+            },
+
+            get totalFee() {
+                return this.baseFee + (this.extraPetCount * this.addFee);
+            },
+
+            get totalDuration() {
+                return this.baseDuration + (this.extraPetCount * this.addDuration);
+            },
+
+            get totalCreditsCost() {
+                return this.baseCreditsCost + (this.extraPetCount * this.addCreditsCost);
+            },
+
+            get hasSufficientCredits() {
+                return this.clientCredits >= this.totalCreditsCost;
+            },
+
+            onPrimaryPetChange() {
+                this.selectedAdditionalPetIds = this.selectedAdditionalPetIds.filter(id => String(id) !== String(this.primaryPetId));
+            },
 
             init() {
                 this.generateUpcomingDays();
@@ -376,9 +494,9 @@
                     alert('Please select an available time slot from the calendar.');
                     return false;
                 }
-                if (this.clientCredits < this.bookingCreditsCost) {
+                if (!this.hasSufficientCredits) {
                     e.preventDefault();
-                    alert('You have insufficient credits. Please top up your credits first.');
+                    alert(`You have insufficient credits. You need ${this.totalCreditsCost} credits for this consultation.`);
                     return false;
                 }
                 return true;

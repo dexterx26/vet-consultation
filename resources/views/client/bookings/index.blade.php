@@ -50,9 +50,9 @@
                                 </div>
                                 <h3 class="font-bold text-slate-800 text-base mt-1">Dr. {{ $consult->vet->name }}</h3>
                                 <p class="text-xs text-slate-600">
-                                    For: <strong class="text-slate-800">{{ $consult->pet->name }}</strong> • 
+                                    For: <strong class="text-slate-800">{{ $consult->all_pets->pluck('name')->join(', ') }}</strong> • 
                                     Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong> • 
-                                    Fee: <strong class="text-brand-700">₱{{ number_format($consult->fee, 2) }}</strong>
+                                    Fee: <strong class="text-brand-700">₱{{ number_format($consult->fee, 2) }}</strong> ({{ $consult->duration_minutes ?: 15 }}m)
                                 </p>
                                 @if($consult->status === 'reschedule_suggested')
                                     <p class="text-xs text-indigo-700 font-semibold mt-1">

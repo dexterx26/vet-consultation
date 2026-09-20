@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/vets/{vet}/reject', [Admin\VetVerificationController::class, 'reject'])->name('vets.reject');
         Route::post('/vets/{vet}/suspend', [Admin\VetVerificationController::class, 'suspend'])->name('vets.suspend');
         Route::post('/vets/{vet}/reactivate', [Admin\VetVerificationController::class, 'reactivate'])->name('vets.reactivate');
+        Route::post('/vets/{vet}/fees', [Admin\VetVerificationController::class, 'updateFees'])->name('vets.fees');
 
         // Pet Categories & Breeds
         Route::get('/categories', [Admin\PetCategoryController::class, 'index'])->name('categories.index');

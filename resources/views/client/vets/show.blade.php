@@ -31,10 +31,17 @@
                 </div>
             </div>
 
-            <div class="w-full md:w-auto bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                <span class="block text-xs text-slate-500 font-medium">Consultation Fee</span>
-                <span class="block text-2xl font-black text-brand-700 mt-0.5">₱{{ number_format($vet->vetProfile->consultation_fee, 2) }}</span>
-                <a href="{{ route('client.bookings.create', ['vet_id' => $vet->id]) }}" class="mt-3 block w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md shadow-brand-600/30 transition-all">
+            <div class="w-full md:w-auto bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center space-y-2">
+                <div>
+                    <span class="block text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Base Consultation</span>
+                    <span class="block text-2xl font-black text-brand-700 mt-0.5">₱{{ number_format($vet->vetProfile->consultation_fee, 2) }}</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200/80 text-xs text-slate-600">
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Additional Pet</span>
+                    <span class="font-bold text-slate-800">+₱{{ number_format($vet->vetProfile->effective_additional_pet_fee, 2) }}</span>
+                    <span class="text-[11px] text-slate-500">(+{{ $vet->vetProfile->effective_additional_pet_duration }} mins)</span>
+                </div>
+                <a href="{{ route('client.bookings.create', ['vet_id' => $vet->id, 'pet_id' => request('pet_id')]) }}" class="mt-2 block w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md shadow-brand-600/30 transition-all">
                     Book Consultation Now
                 </a>
             </div>

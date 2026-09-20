@@ -78,7 +78,7 @@
                             </div>
                         </div>
                         <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                            <a href="{{ route('client.vets.search', ['animal_type' => $pet->animalType->name ?? '']) }}" class="text-brand-600 font-semibold hover:underline flex items-center space-x-1">
+                            <a href="{{ route('client.vets.search', ['animal_type' => $pet->animalType->name ?? '', 'pet_id' => $pet->id]) }}" class="text-brand-600 font-semibold hover:underline flex items-center space-x-1">
                                 <span>Book Vet</span>
                                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
                             </a>
@@ -123,7 +123,7 @@
                                     </div>
                                     <h3 class="font-bold text-slate-800 text-lg mt-1">{{ $consult->vet->name }}</h3>
                                     <p class="text-xs text-slate-500">
-                                        For: <strong class="text-slate-700">{{ $consult->pet->name }}</strong> • Scheduled: 
+                                        For: <strong class="text-slate-700">{{ $consult->all_pets->pluck('name')->join(', ') }}</strong> • Scheduled: 
                                         <strong class="text-slate-800">{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong>
                                     </p>
                                     <p class="text-xs text-slate-600 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100 italic">

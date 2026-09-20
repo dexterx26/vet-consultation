@@ -84,6 +84,93 @@
                 </div>
             </div>
 
+            <!-- Card 3: Default Additional Pet Fee -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-solid fa-paw"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">Default Extra Pet Fee</h3>
+                <p class="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+                    Default fee added to a consultation when a client books additional pets (unless overridden by the veterinarian).
+                </p>
+
+                <div>
+                    <label for="default_additional_pet_fee" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Fee Per Extra Pet (₱)
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                            ₱
+                        </div>
+                        <input type="number" step="0.01" name="default_additional_pet_fee" id="default_additional_pet_fee"
+                               value="{{ old('default_additional_pet_fee', $defaultAdditionalPetFee) }}"
+                               min="0"
+                               class="w-full pl-9 pr-4 py-2.5 rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm font-semibold text-slate-800 shadow-sm">
+                    </div>
+                    <span class="text-[11px] text-slate-400 mt-1.5 block">Default is <strong>₱250.00</strong>.</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Default Additional Pet Extra Time -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">Extra Pet Time Added</h3>
+                <p class="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+                    Extra minutes added to the video call/chat room duration for each additional pet examined during a teleconsultation.
+                </p>
+
+                <div>
+                    <label for="default_additional_pet_duration" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Duration Added (In Minutes)
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                        </div>
+                        <input type="number" name="default_additional_pet_duration" id="default_additional_pet_duration"
+                               value="{{ old('default_additional_pet_duration', $defaultAdditionalPetDuration) }}"
+                               min="1" max="120"
+                               class="w-full pl-9 pr-14 py-2.5 rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm font-semibold text-slate-800 shadow-sm">
+                        <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">
+                            mins
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-slate-400 mt-1.5 block">Default is <strong>15 mins</strong>.</span>
+                </div>
+            </div>
+
+            <!-- Card 5: Additional Pet Credits Cost -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-solid fa-circle-plus"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">Extra Pet Credit Cost</h3>
+                <p class="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
+                    Number of credits deducted from the client balance for each additional pet included in a booking.
+                </p>
+
+                <div>
+                    <label for="additional_pet_credits_cost" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Credits Per Extra Pet
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-coins text-xs"></i>
+                        </div>
+                        <input type="number" name="additional_pet_credits_cost" id="additional_pet_credits_cost"
+                               value="{{ old('additional_pet_credits_cost', $additionalPetCreditsCost) }}"
+                               min="0" max="10000"
+                               class="w-full pl-9 pr-14 py-2.5 rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm font-semibold text-slate-800 shadow-sm">
+                        <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">
+                            pts
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-slate-400 mt-1.5 block">Default is <strong>150 credits</strong>.</span>
+                </div>
+            </div>
+
         </div>
 
         <!-- Policy Summary Alert -->

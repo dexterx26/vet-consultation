@@ -15,9 +15,10 @@
             <div>
                 <h1 class="font-bold text-base leading-tight text-white">Consultation #{{ $consultation->consultation_number }}</h1>
                 <p class="text-xs text-slate-300">
-                    Pet: <strong class="text-brand-300">{{ $consultation->pet->name }}</strong> • 
+                    Pets: <strong class="text-brand-300">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong> • 
+                    Duration: <span class="text-amber-300 font-semibold">{{ $consultation->duration_minutes ?: 15 }} mins</span> • 
                     Client: <span class="text-slate-200">{{ $consultation->client->name }}</span> • 
-                    Vet: <span class="text-slate-200">{{ $consultation->vet->name }}</span>
+                    Vet: <span class="text-slate-200">Dr. {{ $consultation->vet->name }}</span>
                 </p>
             </div>
         </div>

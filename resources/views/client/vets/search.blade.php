@@ -22,8 +22,25 @@
             </div>
         </div>
 
+        <!-- Selected Pet Banner -->
+        @if(request('pet_id') && ($selectedPet = \App\Models\Pet::where('user_id', auth()->id())->find(request('pet_id'))))
+            <div class="mb-6 bg-brand-50/70 border border-brand-200 text-brand-900 rounded-2xl p-4 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                        <i class="fa-solid fa-paw"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-sm text-slate-800">Booking for: {{ $selectedPet->name }}</span>
+                        <p class="text-slate-600 text-[11px]">{{ $selectedPet->animalType->name ?? 'Pet' }} • {{ $selectedPet->breed_name }} — Finding veterinarians who handle this animal category</p>
+                    </div>
+                </div>
+                <a href="{{ route('client.vets.search') }}" class="text-xs text-slate-500 hover:text-slate-700 underline font-medium">Clear Pet Filter</a>
+            </div>
+        @endif
+
         <!-- Filter Controls Form -->
         <form method="GET" action="{{ route('client.vets.search') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <input type="hidden" name="pet_id" value="{{ request('pet_id') }}">
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Animal Category</label>
                 <select name="animal_type" class="w-full rounded-xl border-slate-200 text-xs py-2.5 focus:ring-brand-500 focus:border-brand-500">
@@ -97,18 +114,24 @@
                             <strong class="text-slate-800">Specialities:</strong> {{ Str::limit($vet->vetProfile->expertise ?? 'Small Animal Care', 80) }}
                         </p>
 
-                        <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span class="text-slate-500 font-medium">Consultation Fee</span>
-                            <span class="font-extrabold text-brand-700 text-sm">₱{{ number_format($vet->vetProfile->consultation_fee ?? 500, 2) }}</span>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-500 font-medium">Consultation Fee</span>
+                                <span class="font-extrabold text-brand-700 text-sm">₱{{ number_format($vet->vetProfile->consultation_fee ?? 500, 2) }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-200/50 pt-1">
+                                <span>Extra Pet Rate</span>
+                                <span class="font-semibold text-slate-700">+₱{{ number_format($vet->vetProfile->effective_additional_pet_fee, 2) }} (+{{ $vet->vetProfile->effective_additional_pet_duration }}m)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-6 pt-3 border-t border-slate-100 flex items-center space-x-2">
-                    <a href="{{ route('client.bookings.create', ['vet_id' => $vet->id]) }}" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-2.5 px-3 rounded-xl shadow-md shadow-brand-600/20 text-center transition-all">
+                    <a href="{{ route('client.bookings.create', ['vet_id' => $vet->id, 'pet_id' => request('pet_id')]) }}" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-2.5 px-3 rounded-xl shadow-md shadow-brand-600/20 text-center transition-all">
                         Request Consultation
                     </a>
-                    <a href="{{ route('client.vets.show', $vet) }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl transition-all">
+                    <a href="{{ route('client.vets.show', ['vet' => $vet->id, 'pet_id' => request('pet_id')]) }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl transition-all">
                         Profile
                     </a>
                 </div>

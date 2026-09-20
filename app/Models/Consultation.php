@@ -20,6 +20,10 @@ class Consultation extends Model
         'suggested_scheduled_at',
         'reschedule_note',
         'fee',
+        'duration_minutes',
+        'base_fee',
+        'additional_fee',
+        'credits_cost',
         'credits_deducted',
         'reason',
         'attachments',
@@ -31,6 +35,10 @@ class Consultation extends Model
         'suggested_scheduled_at' => 'datetime',
         'attachments' => 'array',
         'fee' => 'decimal:2',
+        'base_fee' => 'decimal:2',
+        'additional_fee' => 'decimal:2',
+        'duration_minutes' => 'integer',
+        'credits_cost' => 'integer',
         'credits_deducted' => 'integer',
     ];
 
@@ -47,6 +55,25 @@ class Consultation extends Model
     public function pet()
     {
         return $this->belongsTo(Pet::class, 'pet_id');
+    }
+
+    public function pets()
+    {
+        return $this->belongsToMany(Pet::class, 'consultation_pets')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    public function getAllPetsAttribute()
+    {
+        if ($this->relationLoaded('pets') && $this->pets->isNotEmpty()) {
+            return $this->pets;
+        }
+        $pets = $this->pets()->get();
+        if ($pets->isNotEmpty()) {
+            return $pets;
+        }
+        return $this->pet ? collect([$this->pet]) : collect();
     }
 
     public function messages()

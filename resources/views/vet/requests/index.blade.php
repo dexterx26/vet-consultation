@@ -31,8 +31,8 @@
                             </div>
                             <h3 class="font-bold text-slate-800 text-base mt-1">Client: {{ $consult->client->name }}</h3>
                             <p class="text-xs text-slate-600">
-                                Patient: <strong class="text-slate-800">{{ $consult->pet->name }}</strong> ({{ $consult->pet->breed_name }}) • 
-                                Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong>
+                                Patient(s): <strong class="text-slate-800">{{ $consult->all_pets->pluck('name')->join(', ') }}</strong> • 
+                                Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong> ({{ $consult->duration_minutes ?: 15 }}m)
                             </p>
                             <p class="text-xs text-slate-500 italic mt-1">"{{ Str::limit($consult->reason, 90) }}"</p>
                         </div>

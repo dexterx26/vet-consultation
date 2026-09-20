@@ -38,7 +38,9 @@ class VideoController extends Controller
 
         $isVet = ($user->id === $consultation->vet_id);
 
-        $timeLimitMinutes = (int) \App\Models\SystemSetting::get('video_call_time_limit_minutes', 1);
+        $consultation->load(['pets.animalType', 'pet.animalType', 'vet', 'client']);
+
+        $timeLimitMinutes = $consultation->duration_minutes ?: (int) \App\Models\SystemSetting::get('video_call_time_limit_minutes', 15);
         $timeLimitSeconds = $timeLimitMinutes * 60;
 
         return view('consultation.video', compact('consultation', 'call', 'user', 'isVet', 'timeLimitMinutes', 'timeLimitSeconds'));
