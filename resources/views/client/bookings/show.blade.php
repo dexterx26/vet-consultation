@@ -23,6 +23,8 @@
             <p class="text-xs text-slate-500 mt-1">
                 Pets: <strong class="text-slate-700">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong> • 
                 Duration: <strong class="text-slate-700">{{ $consultation->duration_minutes ?: 15 }} mins</strong> • 
+                Time Consumed: <strong class="text-amber-700">{{ $consultation->formatted_consumed_time }}</strong> • 
+                Remaining: <strong class="text-emerald-700">{{ $consultation->formatted_remaining_time }}</strong> • 
                 Fee: <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }}</strong> •
                 Scheduled for <strong class="text-slate-700">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong>
             </p>
@@ -53,6 +55,37 @@
             @endif
         </div>
     </div>
+
+    <!-- Pending Time Extension Banner for Client -->
+    @if($consultation->pendingTimeExtension)
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full bg-amber-200 text-amber-900 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                            <span>Time Extension Pending Doctor Approval</span>
+                        </span>
+                        <span class="text-xs text-amber-700 font-medium">{{ $consultation->pendingTimeExtension->created_at->diffForHumans() }}</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mt-1">
+                        Requested +{{ $consultation->pendingTimeExtension->minutes }} Minutes Extension ({{ $consultation->pendingTimeExtension->credits_cost }} credits)
+                    </h3>
+                    <p class="text-xs text-slate-600">
+                        Waiting for Dr. {{ $consultation->vet->name }} to review and approve. Your credits will only be deducted once approved by the doctor.
+                    </p>
+                </div>
+                <div>
+                    <form method="POST" action="{{ route('consultation.extensions.cancel', [$consultation, $consultation->pendingTimeExtension]) }}" onsubmit="return confirm('Cancel this time extension request?');">
+                        @csrf
+                        <button type="submit" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-all">
+                            Cancel Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Doctor Proposed Reschedule Banner (CRITICAL USER INTERACTION) -->
     @if($consultation->status === 'reschedule_suggested')
@@ -125,7 +158,7 @@
                     <span class="text-slate-600">{{ $consultation->credits_deducted }} credits were deducted from your balance upon doctor confirmation.</span>
                 </div>
             </div>
-            <span class="font-mono font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-xl text-sm">-{{ $consultation->credits_deducted }} pts</span>
+            <span class="font-mono font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-xl text-sm">-{{ $consultation->credits_deducted }} credits</span>
         </div>
     @endif
 

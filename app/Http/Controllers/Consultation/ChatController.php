@@ -19,20 +19,32 @@ class ChatController extends Controller
             return redirect()->back()->with('error', 'Chat room is only available after consultation is accepted.');
         }
 
+        $consultation->load(['pets.animalType', 'pet.animalType', 'vet', 'client']);
+
+        // Process heartbeat upon entering chat room
+        $timer = TimeSyncController::processHeartbeat($consultation, $user);
+
         // Mark messages as read
         ConsultationMessage::where('consultation_id', $consultation->id)
             ->where('sender_id', '!=', $user->id)
             ->update(['read_at' => now()]);
 
         $messages = $consultation->messages()->with('sender')->orderBy('created_at', 'asc')->get();
+        $isVet = ($user->id === $consultation->vet_id);
+        $creditsPerMinute = (int) \App\Models\SystemSetting::get('time_extension_credits_per_minute', 5);
+        $userCredits = $user->credits ?? 0;
+        $extensionPackages = \App\Models\ConsultationTimeExtension::getPackages();
 
-        return view('consultation.chat', compact('consultation', 'messages', 'user'));
+        return view('consultation.chat', compact('consultation', 'messages', 'user', 'isVet', 'timer', 'creditsPerMinute', 'userCredits', 'extensionPackages'));
     }
 
     public function fetchMessages(Consultation $consultation)
     {
         $user = Auth::user();
         $this->authorizeConsultationUser($consultation, $user);
+
+        // Process heartbeat to track presence and deduct active doctor time
+        $timer = TimeSyncController::processHeartbeat($consultation, $user);
 
         // Mark unread messages
         ConsultationMessage::where('consultation_id', $consultation->id)
@@ -43,6 +55,7 @@ class ChatController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'timer' => $timer,
             'messages' => $messages->map(function ($msg) use ($user) {
                 return [
                     'id' => $msg->id,
@@ -62,6 +75,10 @@ class ChatController extends Controller
         $user = Auth::user();
         $this->authorizeConsultationUser($consultation, $user);
 
+        if ($consultation->isExpired() || in_array($consultation->status, ['completed', 'expired', 'declined', 'cancelled_by_client', 'cancelled_by_vet'])) {
+            return response()->json(['error' => 'Consultation time limit has expired. No further messages can be sent.'], 403);
+        }
+
         $request->validate([
             'message' => 'nullable|string',
             'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
@@ -70,6 +87,9 @@ class ChatController extends Controller
         if (empty($request->message) && !$request->hasFile('attachment')) {
             return response()->json(['error' => 'Message or attachment required.'], 422);
         }
+
+        // Process heartbeat on active interaction
+        TimeSyncController::processHeartbeat($consultation, $user);
 
         $attachmentPath = null;
         $attachmentType = null;

@@ -40,10 +40,35 @@ class VideoController extends Controller
 
         $consultation->load(['pets.animalType', 'pet.animalType', 'vet', 'client']);
 
-        $timeLimitMinutes = $consultation->duration_minutes ?: (int) \App\Models\SystemSetting::get('video_call_time_limit_minutes', 15);
-        $timeLimitSeconds = $timeLimitMinutes * 60;
+        if ($consultation->isExpired() && !in_array($consultation->status, ['completed'])) {
+            $consultation->update(['status' => 'completed']);
+        }
 
-        return view('consultation.video', compact('consultation', 'call', 'user', 'isVet', 'timeLimitMinutes', 'timeLimitSeconds'));
+        // Process heartbeat upon entering video room
+        $timer = TimeSyncController::processHeartbeat($consultation, $user);
+
+        $timeLimitMinutes = $consultation->duration_minutes ?: (int) \App\Models\SystemSetting::get('video_call_time_limit_minutes', 15);
+        $totalDurationSeconds = $consultation->total_duration_seconds;
+        $remainingSeconds = $consultation->remaining_seconds;
+        $consumedSeconds = $consultation->time_consumed_seconds ?? 0;
+        $creditsPerMinute = (int) \App\Models\SystemSetting::get('time_extension_credits_per_minute', 5);
+        $userCredits = $user->credits ?? 0;
+        $extensionPackages = \App\Models\ConsultationTimeExtension::getPackages();
+
+        return view('consultation.video', compact(
+            'consultation',
+            'call',
+            'user',
+            'isVet',
+            'timer',
+            'timeLimitMinutes',
+            'totalDurationSeconds',
+            'remainingSeconds',
+            'consumedSeconds',
+            'creditsPerMinute',
+            'userCredits',
+            'extensionPackages'
+        ));
     }
 
     public function endCall(Consultation $consultation)
@@ -57,6 +82,7 @@ class VideoController extends Controller
             $call->update([
                 'status' => 'ended',
                 'ended_at' => now(),
+                'duration_seconds' => $consultation->time_consumed_seconds ?? 0,
             ]);
         }
 

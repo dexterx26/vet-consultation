@@ -29,4 +29,15 @@ class DashboardController extends Controller
 
         return view('client.dashboard', compact('pets', 'upcomingConsultations', 'recentConsultations'));
     }
+
+    public function getCredits()
+    {
+        $user = Auth::user();
+        $credits = (int) ($user ? ($user->fresh()->credits ?? 0) : 0);
+        return response()->json([
+            'status' => 'success',
+            'credits' => $credits,
+            'formatted' => number_format($credits),
+        ]);
+    }
 }

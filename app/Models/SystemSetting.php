@@ -24,13 +24,16 @@ class SystemSetting extends Model
 
     public static function set(string $key, $value, $label = null, $description = null): self
     {
+        $existing = static::where('key', $key)->first();
+        $label = $label ?? ($existing?->label ?? ucwords(str_replace('_', ' ', $key)));
+
         return static::updateOrCreate(
             ['key' => $key],
-            array_filter([
+            [
                 'value' => (string)$value,
                 'label' => $label,
-                'description' => $description,
-            ], fn($v) => !is_null($v))
+                'description' => $description ?? $existing?->description,
+            ]
         );
     }
 }

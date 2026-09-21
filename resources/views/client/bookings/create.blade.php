@@ -134,7 +134,7 @@
                                             </div>
                                             <div class="text-right text-[11px]">
                                                 <span class="font-extrabold text-emerald-700 block">+₱{{ number_format($addFee, 2) }}</span>
-                                                <span class="text-[10px] text-slate-400">+{{ $addDuration }} mins • +{{ $addCreditsCost }} pts</span>
+                                                <span class="text-[10px] text-slate-400">+{{ $addDuration }} mins • +{{ $addCreditsCost }} credits</span>
                                             </div>
                                         </label>
                                     @else

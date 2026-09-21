@@ -6,6 +6,7 @@
 <div class="max-w-4xl mx-auto space-y-6" x-data="{
     rescheduleModalOpen: false,
     declineModalOpen: false,
+    addFreeTimeModalOpen: false,
     suggestedDate: '{{ date('Y-m-d', strtotime('+1 day')) }}',
     suggestedTime: '10:00:00',
     rescheduleNote: ''
@@ -55,6 +56,16 @@
                 </button>
             @endif
 
+            @if(in_array($consultation->status, ['accepted', 'in_progress', 'completed']))
+                <!-- Doctor Add Free Time Button -->
+                <button type="button" @click="addFreeTimeModalOpen = true"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all"
+                        title="Add complimentary consultation time (free of charge to client)">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>+ Free Time</span>
+                </button>
+            @endif
+
             @if(in_array($consultation->status, ['accepted', 'in_progress']))
                 @if($consultation->type === 'video')
                     <a href="{{ route('consultation.video', $consultation) }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-brand-600/30 flex items-center space-x-1.5 transition-all">
@@ -72,6 +83,45 @@
             @endif
         </div>
     </div>
+
+    <!-- Pending Extension Request Banner (Vet Review Card) -->
+    @if($consultation->pendingTimeExtension)
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full bg-amber-200 text-amber-900 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-hourglass-start"></i>
+                            <span>Extension Requested by Client</span>
+                        </span>
+                        <span class="text-xs text-amber-700 font-medium">{{ $consultation->pendingTimeExtension->created_at->diffForHumans() }}</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mt-1">
+                        {{ $consultation->client->name }} requested +{{ $consultation->pendingTimeExtension->minutes }} Minutes Extension
+                    </h3>
+                    <p class="text-xs text-slate-600">
+                        If approved, <strong class="text-amber-800">{{ $consultation->pendingTimeExtension->credits_cost }} credits</strong> will be deducted from the client's balance and consultation duration will extend to {{ ($consultation->duration_minutes ?: 15) + $consultation->pendingTimeExtension->minutes }} minutes.
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2.5 shrink-0">
+                    <form method="POST" action="{{ route('consultation.extensions.approve', [$consultation, $consultation->pendingTimeExtension]) }}" onsubmit="return confirm('Approve +{{ $consultation->pendingTimeExtension->minutes }} minutes extension? {{ $consultation->pendingTimeExtension->credits_cost }} credits will be deducted from client.');">
+                        @csrf
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Approve (+{{ $consultation->pendingTimeExtension->minutes }}m)</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('consultation.extensions.decline', [$consultation, $consultation->pendingTimeExtension]) }}" onsubmit="return confirm('Decline this time extension request?');">
+                        @csrf
+                        <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                            <span>Decline</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Notice if Reschedule was Proposed -->
     @if($consultation->status === 'reschedule_suggested')
@@ -95,7 +145,7 @@
                 <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
                 <span>Booking Confirmed • {{ $consultation->credits_deducted }} consultation credits have been deducted from client.</span>
             </div>
-            <span class="font-mono font-extrabold bg-emerald-100 px-2.5 py-1 rounded-lg">{{ $consultation->credits_deducted }} pts</span>
+            <span class="font-mono font-extrabold bg-emerald-100 px-2.5 py-1 rounded-lg">{{ $consultation->credits_deducted }} credits</span>
         </div>
     @endif
 
@@ -107,6 +157,10 @@
             </h2>
             <div class="text-xs text-slate-600 flex items-center space-x-3">
                 <span>Total Time: <strong class="text-slate-800">{{ $consultation->duration_minutes ?: 15 }} mins</strong></span>
+                <span>•</span>
+                <span>Consumed: <strong class="text-amber-700">{{ $consultation->formatted_consumed_time }}</strong></span>
+                <span>•</span>
+                <span>Remaining: <strong class="text-emerald-700">{{ $consultation->formatted_remaining_time }}</strong></span>
                 <span>•</span>
                 <span>Total Fee: <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }}</strong></span>
             </div>
@@ -259,6 +313,66 @@
                 <div class="flex justify-end space-x-2">
                     <button type="button" @click="declineModalOpen = false" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
                     <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Confirm Decline</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Doctor Add Free Time -->
+    <div x-show="addFreeTimeModalOpen"
+         x-transition class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+         style="display: none;">
+        <div @click.outside="addFreeTimeModalOpen = false" class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-gift"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Add Complimentary Time</h3>
+                        <p class="text-xs text-slate-500">Free of charge to the client</p>
+                    </div>
+                </div>
+                <button @click="addFreeTimeModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600">
+                Current Duration: <strong class="text-slate-800">{{ $consultation->duration_minutes ?: 15 }} mins</strong>. Choose how many extra minutes to grant free of charge:
+            </p>
+
+            <form method="POST" action="{{ route('consultation.doctor-add-time', $consultation) }}" class="space-y-4">
+                @csrf
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="minutes" value="5" class="peer sr-only" checked>
+                        <div class="p-3 text-center rounded-xl border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 font-bold text-xs text-slate-700 peer-checked:text-emerald-700">
+                            +5 Mins
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="minutes" value="10" class="peer sr-only">
+                        <div class="p-3 text-center rounded-xl border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 font-bold text-xs text-slate-700 peer-checked:text-emerald-700">
+                            +10 Mins
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="minutes" value="15" class="peer sr-only">
+                        <div class="p-3 text-center rounded-xl border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 font-bold text-xs text-slate-700 peer-checked:text-emerald-700">
+                            +15 Mins
+                        </div>
+                    </label>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] text-emerald-800">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    This immediately extends consultation time and does <strong>not</strong> deduct any credits from {{ $consultation->client->name }}.
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" @click="addFreeTimeModalOpen = false" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20">Grant Free Time</button>
                 </div>
             </form>
         </div>

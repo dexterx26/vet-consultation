@@ -47,7 +47,7 @@
                                min="1" max="10000" required
                                class="w-full pl-9 pr-14 py-2.5 rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm font-semibold text-slate-800 shadow-sm">
                         <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">
-                            pts
+                            credits
                         </div>
                     </div>
                     <span class="text-[11px] text-slate-400 mt-1.5 block">Default is <strong>300 credits</strong>.</span>
@@ -164,10 +164,99 @@
                                min="0" max="10000"
                                class="w-full pl-9 pr-14 py-2.5 rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm font-semibold text-slate-800 shadow-sm">
                         <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">
-                            pts
+                            credits
                         </div>
                     </div>
                     <span class="text-[11px] text-slate-400 mt-1.5 block">Default is <strong>150 credits</strong>.</span>
+                </div>
+            </div>
+
+            <!-- Card 6: Consultation Time Extension Packages -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow md:col-span-2"
+                 x-data="{
+                     packages: {{ json_encode($extensionPackages) }},
+                     addPackage() {
+                         const lastPkg = this.packages[this.packages.length - 1];
+                         const nextMin = lastPkg ? parseInt(lastPkg.minutes) + 5 : 10;
+                         const nextCredits = lastPkg ? parseInt(lastPkg.credits) + 25 : 50;
+                         this.packages.push({ minutes: nextMin, credits: nextCredits });
+                     },
+                     removePackage(index) {
+                         if (this.packages.length > 1) {
+                             this.packages.splice(index, 1);
+                         } else {
+                             alert('At least one extension package must be maintained.');
+                         }
+                     }
+                 }">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">Consultation Time Extension Packages</h3>
+                            <p class="text-xs text-slate-500">Configure duration tiers and credit costs clients can request during video calls or live chats</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="addPackage()"
+                            class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm shadow-teal-600/20 shrink-0 self-start sm:self-center">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>Add Package Tier</span>
+                    </button>
+                </div>
+
+                <!-- Package Tiers Table / Repeater -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                                <th class="py-3 px-4 rounded-l-xl">Tier</th>
+                                <th class="py-3 px-4">Extension Duration</th>
+                                <th class="py-3 px-4">Credit Cost</th>
+                                <th class="py-3 px-4 rounded-r-xl text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <template x-for="(pkg, index) in packages" :key="index">
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-3 px-4 font-mono font-bold text-slate-500" x-text="'#' + (index + 1)"></td>
+                                    <td class="py-3 px-4">
+                                        <div class="relative max-w-xs">
+                                            <input type="number" name="package_minutes[]" x-model.number="pkg.minutes"
+                                                   min="1" max="300" required
+                                                   class="w-full pr-14 py-2 rounded-xl border-slate-200 focus:border-teal-500 focus:ring-teal-500 text-xs font-bold text-slate-800 shadow-sm">
+                                            <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-[11px] font-bold text-slate-400">
+                                                mins
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="relative max-w-xs">
+                                            <input type="number" name="package_credits[]" x-model.number="pkg.credits"
+                                                   min="0" max="100000" required
+                                                   class="w-full pr-16 py-2 rounded-xl border-slate-200 focus:border-teal-500 focus:ring-teal-500 text-xs font-bold text-slate-800 shadow-sm">
+                                            <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-[11px] font-bold text-slate-400">
+                                                credits
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <button type="button" @click="removePackage(index)"
+                                                class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors inline-flex items-center justify-center text-xs"
+                                                title="Remove tier">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 bg-teal-50/60 border border-teal-200/80 rounded-xl p-3 text-[11px] text-teal-900 flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-info text-teal-600 text-xs mt-0.5 shrink-0"></i>
+                    <span>These packages are dynamically offered to clients when requesting consultation time extensions during video calls or live chats. Veterinarian approval is always required before credits are deducted.</span>
                 </div>
             </div>
 

@@ -63,7 +63,7 @@
                                 <td class="py-3.5 px-4">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                         <i class="fa-solid fa-coins text-amber-500 mr-1.5"></i>
-                                        {{ number_format($u->credits ?? 0) }} pts
+                                        {{ number_format($u->credits ?? 0) }} credits
                                     </span>
                                 </td>
                             @endif

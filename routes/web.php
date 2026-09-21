@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     // ----------------------------------------------------
     Route::middleware('role:client')->prefix('client')->name('client.')->group(function () {
         Route::get('/dashboard', [Client\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/credits-balance', [Client\DashboardController::class, 'getCredits'])->name('credits-balance');
 
         // Pets CRUD
         Route::resource('pets', Client\PetController::class);
@@ -125,4 +126,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/consultation/{consultation}/video', [Consultation\VideoController::class, 'showRoom'])->name('consultation.video');
     Route::post('/consultation/{consultation}/video/end', [Consultation\VideoController::class, 'endCall'])->name('consultation.video.end');
+    Route::post('/consultation/{consultation}/sync-time', [Consultation\TimeSyncController::class, 'sync'])->name('consultation.sync-time');
+
+    // Time Extensions
+    Route::post('/consultation/{consultation}/doctor-add-time', [Consultation\TimeExtensionController::class, 'doctorAddTime'])->name('consultation.doctor-add-time');
+    Route::post('/consultation/{consultation}/request-extension', [Consultation\TimeExtensionController::class, 'requestExtension'])->name('consultation.request-extension');
+    Route::post('/consultation/{consultation}/extensions/{extension}/approve', [Consultation\TimeExtensionController::class, 'approveExtension'])->name('consultation.extensions.approve');
+    Route::post('/consultation/{consultation}/extensions/{extension}/decline', [Consultation\TimeExtensionController::class, 'declineExtension'])->name('consultation.extensions.decline');
+    Route::post('/consultation/{consultation}/extensions/{extension}/cancel', [Consultation\TimeExtensionController::class, 'cancelExtension'])->name('consultation.extensions.cancel');
 });

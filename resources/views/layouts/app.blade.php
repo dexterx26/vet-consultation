@@ -127,11 +127,16 @@
                 </div>
 
                 <!-- Right Menu & User Badge -->
-                <div class="flex items-center space-x-3" x-data="{ openDropdown: false }">
+                <div class="flex items-center space-x-2 sm:space-x-3" x-data="{ openDropdown: false }">
                     @if(auth()->user()->isClient())
-                        <div class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-extrabold shadow-sm">
-                            <i class="fa-solid fa-coins text-amber-400"></i>
-                            <span>{{ number_format(auth()->user()->credits ?? 0) }} Credits</span>
+                        <!-- Real-Time Client Credits Badge in Navbar -->
+                        <div x-data="clientCreditsNavbar({{ auth()->user()->credits ?? 0 }})"
+                             x-init="init()"
+                             class="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-extrabold shadow-sm transition-all duration-300 select-none"
+                             :class="justUpdated ? 'ring-2 ring-amber-400 bg-amber-400/30 scale-105 shadow-md shadow-amber-400/30 text-amber-200' : ''"
+                             title="Your Current Consultation Credits Balance">
+                            <i class="fa-solid fa-coins text-amber-400 text-xs sm:text-sm" :class="justUpdated ? 'animate-bounce' : ''"></i>
+                            <span x-text="formattedCredits + ' Credits'">{{ number_format(auth()->user()->credits ?? 0) }} Credits</span>
                         </div>
                     @endif
 
@@ -151,9 +156,11 @@
                             <div class="px-4 py-2 border-b border-slate-800">
                                 <p class="text-white font-medium truncate">{{ auth()->user()->email }}</p>
                                 @if(auth()->user()->isClient())
-                                    <div class="text-[11px] text-amber-400 font-bold mt-1 flex items-center space-x-1">
+                                    <div class="text-[11px] text-amber-400 font-bold mt-1 flex items-center space-x-1"
+                                         x-data="{ credits: {{ auth()->user()->credits ?? 0 }} }"
+                                         @credits-updated.window="credits = $event.detail.credits">
                                         <i class="fa-solid fa-coins"></i>
-                                        <span>{{ number_format(auth()->user()->credits ?? 0) }} Credits</span>
+                                        <span x-text="new Intl.NumberFormat().format(credits) + ' Credits'">{{ number_format(auth()->user()->credits ?? 0) }} Credits</span>
                                     </div>
                                 @else
                                     <span class="text-[10px] text-slate-400 capitalize">Status: {{ auth()->user()->status }}</span>
@@ -236,6 +243,71 @@
             </div>
         </div>
     </footer>
+
+    @auth
+        @if(auth()->user()->isClient())
+        <script>
+            function clientCreditsNavbar(initialCredits) {
+                return {
+                    credits: initialCredits || 0,
+                    justUpdated: false,
+                    pollTimer: null,
+
+                    get formattedCredits() {
+                        return new Intl.NumberFormat().format(this.credits);
+                    },
+
+                    init() {
+                        // Listen for in-app instant updates (e.g. video call / chat heartbeat / approvals)
+                        window.addEventListener('credits-updated', (e) => {
+                            if (e.detail && e.detail.credits !== undefined) {
+                                this.updateCredits(parseInt(e.detail.credits));
+                            }
+                        });
+
+                        // Periodic polling every 4 seconds to sync credits from backend
+                        this.pollTimer = setInterval(() => {
+                            this.fetchCredits();
+                        }, 4000);
+
+                        // Sync immediately when browser tab regains focus
+                        window.addEventListener('focus', () => {
+                            this.fetchCredits();
+                        });
+                    },
+
+                    fetchCredits() {
+                        fetch('{{ route('client.credits-balance') }}', {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'success' && data.credits !== undefined) {
+                                this.updateCredits(parseInt(data.credits));
+                            }
+                        })
+                        .catch(() => {});
+                    },
+
+                    updateCredits(newCredits) {
+                        if (this.credits !== newCredits) {
+                            this.credits = newCredits;
+                            this.justUpdated = true;
+                            // Broadcast so other client credit indicators update in sync
+                            window.dispatchEvent(new CustomEvent('credits-updated', { detail: { credits: newCredits } }));
+                            setTimeout(() => {
+                                this.justUpdated = false;
+                            }, 1800);
+                        }
+                    }
+                };
+            }
+        </script>
+        @endif
+    @endauth
 
     @stack('scripts')
 </body>

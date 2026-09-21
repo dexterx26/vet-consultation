@@ -28,6 +28,12 @@ class Consultation extends Model
         'reason',
         'attachments',
         'decline_reason',
+        'time_consumed_seconds',
+        'doctor_joined_at',
+        'doctor_last_seen_at',
+        'client_joined_at',
+        'client_last_seen_at',
+        'last_deducted_at',
     ];
 
     protected $casts = [
@@ -40,6 +46,12 @@ class Consultation extends Model
         'duration_minutes' => 'integer',
         'credits_cost' => 'integer',
         'credits_deducted' => 'integer',
+        'time_consumed_seconds' => 'integer',
+        'doctor_joined_at' => 'datetime',
+        'doctor_last_seen_at' => 'datetime',
+        'client_joined_at' => 'datetime',
+        'client_last_seen_at' => 'datetime',
+        'last_deducted_at' => 'datetime',
     ];
 
     public function client()
@@ -94,5 +106,65 @@ class Consultation extends Model
     public function review()
     {
         return $this->hasOne(Review::class, 'consultation_id');
+    }
+
+    public function timeExtensions()
+    {
+        return $this->hasMany(ConsultationTimeExtension::class, 'consultation_id');
+    }
+
+    public function pendingTimeExtension()
+    {
+        return $this->hasOne(ConsultationTimeExtension::class, 'consultation_id')
+            ->where('status', 'pending')
+            ->latest();
+    }
+
+    public function getTotalDurationSecondsAttribute(): int
+    {
+        return ($this->duration_minutes ?: 15) * 60;
+    }
+
+    public function getRemainingSecondsAttribute(): int
+    {
+        return max(0, $this->total_duration_seconds - ($this->time_consumed_seconds ?? 0));
+    }
+
+    public function getFormattedRemainingTimeAttribute(): string
+    {
+        $totalSecs = $this->remaining_seconds;
+        $mins = floor($totalSecs / 60);
+        $secs = $totalSecs % 60;
+        return sprintf('%02d:%02d', $mins, $secs);
+    }
+
+    public function getFormattedConsumedTimeAttribute(): string
+    {
+        $totalSecs = $this->time_consumed_seconds ?? 0;
+        $mins = floor($totalSecs / 60);
+        $secs = $totalSecs % 60;
+        return sprintf('%02d:%02d', $mins, $secs);
+    }
+
+    public function isDoctorPresent(): bool
+    {
+        return $this->doctor_last_seen_at !== null && abs((int) now()->diffInSeconds($this->doctor_last_seen_at)) <= 8;
+    }
+
+    public function isClientPresent(): bool
+    {
+        return $this->client_last_seen_at !== null && abs((int) now()->diffInSeconds($this->client_last_seen_at)) <= 8;
+    }
+
+    public function isTimerRunning(): bool
+    {
+        return $this->isDoctorPresent()
+            && $this->remaining_seconds > 0
+            && !in_array($this->status, ['completed', 'declined', 'cancelled_by_client', 'cancelled_by_vet', 'expired']);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->remaining_seconds <= 0;
     }
 }
