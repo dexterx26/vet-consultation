@@ -31,7 +31,7 @@ class PetController extends Controller
             'breed_id' => 'nullable|exists:breeds,id',
             'custom_breed' => 'nullable|string|max:255',
             'sex' => 'required|in:Male,Female',
-            'dob' => 'nullable|date',
+            'dob' => 'required|date|before_or_equal:today',
             'age_text' => 'nullable|string|max:100',
             'weight' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:100',
@@ -41,6 +41,9 @@ class PetController extends Controller
             'allergies' => 'nullable|string',
             'current_medications' => 'nullable|string',
             'vaccination_info' => 'nullable|string',
+        ], [
+            'dob.required' => 'Please provide your pet\'s birthday.',
+            'dob.before_or_equal' => 'Birthday cannot be a future date.',
         ]);
 
         $photoPath = null;
@@ -94,7 +97,7 @@ class PetController extends Controller
             'breed_id' => 'nullable|exists:breeds,id',
             'custom_breed' => 'nullable|string|max:255',
             'sex' => 'required|in:Male,Female',
-            'dob' => 'nullable|date',
+            'dob' => 'required|date|before_or_equal:today',
             'age_text' => 'nullable|string|max:100',
             'weight' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:100',
@@ -104,6 +107,9 @@ class PetController extends Controller
             'allergies' => 'nullable|string',
             'current_medications' => 'nullable|string',
             'vaccination_info' => 'nullable|string',
+        ], [
+            'dob.required' => 'Please provide your pet\'s birthday.',
+            'dob.before_or_equal' => 'Birthday cannot be a future date.',
         ]);
 
         if ($request->hasFile('photo')) {

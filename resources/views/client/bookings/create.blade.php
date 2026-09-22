@@ -81,7 +81,7 @@
                         1. Primary Pet for Consultation *
                     </label>
                     <select name="pet_id" id="pet_id" x-model="primaryPetId" @change="onPrimaryPetChange()" required
-                            class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-3 shadow-sm font-medium text-slate-800">
+                            class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-3 px-3.5 shadow-sm font-medium text-slate-800">
                         @foreach($pets as $pet)
                             @if($pet->is_handled)
                                 <option value="{{ $pet->id }}" {{ $preselectedPetId == $pet->id ? 'selected' : '' }}>
@@ -422,12 +422,21 @@
                 this.generateUpcomingDays();
                 this.fetchSlots();
 
-                // Real-time polling every 6 seconds to detect new bookings in real time
+                // High-concurrency slot polling: Pause when tab is in background (15s interval)
                 this.pollTimer = setInterval(() => {
-                    if (this.selectedDate) {
+                    if (this.selectedDate && !document.hidden) {
                         this.fetchSlots(true); // silent refresh
                     }
-                }, 6000);
+                }, 15000);
+
+                // Instantly refresh slots when tab becomes active again
+                const onTabActive = () => {
+                    if (this.selectedDate && !document.hidden) {
+                        this.fetchSlots(true);
+                    }
+                };
+                window.addEventListener('focus', onTabActive);
+                document.addEventListener('visibilitychange', onTabActive);
             },
 
             generateUpcomingDays() {

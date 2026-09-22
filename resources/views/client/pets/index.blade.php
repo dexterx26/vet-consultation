@@ -44,7 +44,12 @@
                                 <p class="text-xs text-brand-600 font-medium">{{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }}</p>
                                 <div class="flex flex-wrap gap-1.5 mt-2">
                                     <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ $pet->sex }}</span>
-                                    <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ $pet->age_text . ' year/s old' ?: 'Age N/A' }}</span>
+                                    <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ $pet->age_text ?: 'Age N/A' }}</span>
+                                    @if($pet->dob)
+                                        <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded" title="Date of Birth">
+                                            <i class="fa-solid fa-cake-candles text-amber-500 mr-1"></i>{{ $pet->dob->format('M d, Y') }}
+                                        </span>
+                                    @endif
                                     @if($pet->weight)<span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ $pet->weight }} kg</span>@endif
                                 </div>
                             </div>

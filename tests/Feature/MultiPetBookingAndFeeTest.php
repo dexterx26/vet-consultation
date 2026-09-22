@@ -214,4 +214,41 @@ class MultiPetBookingAndFeeTest extends TestCase
         $this->assertEquals(400.00, (float) $vet->vetProfile->additional_pet_fee);
         $this->assertEquals(25, $vet->vetProfile->additional_pet_duration);
     }
+
+    public function test_vets_search_page_opens_modal_instead_of_redirecting_to_profile()
+    {
+        $client = User::where('role', 'client')->first();
+        $vet = User::where('role', 'veterinarian')->where('status', 'active')->first();
+
+        $response = $this->actingAs($client)->get('/client/vets');
+        $response->assertOk();
+
+        // Check that openProfileModal and profile modal markup are rendered
+        $response->assertSee('profileModalOpen', false);
+        $response->assertSee('openProfileModal', false);
+        $response->assertSee('Veterinarian Profile Modal', false);
+
+        // Check that Profile button triggers the modal and does NOT redirect to route client.vets.show
+        $response->assertSee('openProfileModal', false);
+        $response->assertDontSee(route('client.vets.show', ['vet' => $vet->id]));
+    }
+
+    public function test_client_dashboard_details_button_opens_pet_modal_instead_of_redirecting_to_pet_show()
+    {
+        $client = User::where('role', 'client')->first();
+        $pet = $client->pets()->first();
+
+        $this->assertNotNull($pet, 'Client should have at least one registered pet for this test.');
+
+        $response = $this->actingAs($client)->get('/client/dashboard');
+        $response->assertOk();
+
+        // Check that petModalOpen, openPetModal and Pet Details Modal are present in the response
+        $response->assertSee('petModalOpen', false);
+        $response->assertSee('openPetModal', false);
+        $response->assertSee('Pet Details Modal', false);
+
+        // Check that the Details action uses openPetModal and does NOT link directly to route client.pets.show
+        $response->assertDontSee(route('client.pets.show', $pet));
+    }
 }

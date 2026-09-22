@@ -21,7 +21,7 @@
                     <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $pet->sex }}</span>
                 </div>
                 <p class="text-xs text-brand-600 font-semibold mt-1">{{ $pet->animalType->name ?? 'Pet' }} • {{ $pet->breed_name }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">Age: {{ $pet->age_text ?: 'N/A' }} • Weight: {{ $pet->weight ?: 'N/A' }} • Color: {{ $pet->color ?: 'N/A' }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">Age: {{ $pet->age_text ?: 'N/A' }}@if($pet->dob) (Born: {{ $pet->dob->format('M d, Y') }})@endif • Weight: {{ $pet->weight ?: 'N/A' }} • Color: {{ $pet->color ?: 'N/A' }}</p>
             </div>
         </div>
 

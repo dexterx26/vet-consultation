@@ -51,12 +51,23 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
+        [x-cloak] { display: none !important; }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
         h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Outfit', sans-serif; }
         .glass-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Default comfortable horizontal padding for form text fields, textareas, and select elements */
+        :where(
+            input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]):not([type="color"]):not([type="image"]),
+            textarea,
+            select
+        ) {
+            padding-left: 0.875rem;
+            padding-right: 0.875rem;
+        }
     </style>
 
     @stack('styles')
@@ -252,6 +263,8 @@
                     credits: initialCredits || 0,
                     justUpdated: false,
                     pollTimer: null,
+                    isFetching: false,
+                    lastFetchedAt: Date.now(),
 
                     get formattedCredits() {
                         return new Intl.NumberFormat().format(this.credits);
@@ -265,18 +278,29 @@
                             }
                         });
 
-                        // Periodic polling every 4 seconds to sync credits from backend
+                        // High-concurrency adaptive polling: Pause when tab is in background
+                        // Randomized jitter between 45s - 55s distributes concurrent user requests evenly
+                        const intervalMs = 45000 + Math.floor(Math.random() * 10000);
                         this.pollTimer = setInterval(() => {
-                            this.fetchCredits();
-                        }, 4000);
+                            if (!document.hidden) {
+                                this.fetchCredits();
+                            }
+                        }, intervalMs);
 
-                        // Sync immediately when browser tab regains focus
-                        window.addEventListener('focus', () => {
-                            this.fetchCredits();
-                        });
+                        // Sync immediately when browser tab regains focus or becomes visible
+                        const onTabActive = () => {
+                            if (!document.hidden && (Date.now() - this.lastFetchedAt > 15000)) {
+                                this.fetchCredits();
+                            }
+                        };
+                        window.addEventListener('focus', onTabActive);
+                        document.addEventListener('visibilitychange', onTabActive);
                     },
 
                     fetchCredits() {
+                        if (this.isFetching) return;
+                        this.isFetching = true;
+
                         fetch('{{ route('client.credits-balance') }}', {
                             headers: {
                                 'Accept': 'application/json',
@@ -285,11 +309,15 @@
                         })
                         .then(res => res.json())
                         .then(data => {
+                            this.lastFetchedAt = Date.now();
                             if (data.status === 'success' && data.credits !== undefined) {
                                 this.updateCredits(parseInt(data.credits));
                             }
                         })
-                        .catch(() => {});
+                        .catch(() => {})
+                        .finally(() => {
+                            this.isFetching = false;
+                        });
                     },
 
                     updateCredits(newCredits) {

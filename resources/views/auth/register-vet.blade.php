@@ -25,13 +25,13 @@
                 <div>
                     <label for="name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Name (with credentials)</label>
                     <input type="text" name="name" id="name" value="{{ old('name') }}" required placeholder="Dr. Juan Dela Cruz, DVM"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('name') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="license_number" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">PRC License Number</label>
                     <input type="text" name="license_number" id="license_number" value="{{ old('license_number') }}" required placeholder="PRC-VET-12345"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('license_number') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -40,13 +40,13 @@
                 <div>
                     <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email Address</label>
                     <input type="email" name="email" id="email" value="{{ old('email') }}" required placeholder="doctor@clinic.com"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('email') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="phone" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Contact Number</label>
                     <input type="text" name="phone" id="phone" value="{{ old('phone') }}" required placeholder="09181234567"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('phone') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -55,30 +55,30 @@
                 <div>
                     <label for="years_experience" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Years of Experience</label>
                     <input type="number" name="years_experience" id="years_experience" value="{{ old('years_experience', 5) }}" min="0" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
                 <div>
                     <label for="consultation_fee" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Consultation Fee (₱)</label>
                     <input type="number" step="0.01" name="consultation_fee" id="consultation_fee" value="{{ old('consultation_fee', '500.00') }}" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
                 <div>
                     <label for="city" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">City / Municipality</label>
                     <input type="text" name="city" id="city" value="{{ old('city', 'Quezon City') }}" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
             </div>
 
             <div>
                 <label for="clinic_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Clinic / Hospital Name (Optional)</label>
                 <input type="text" name="clinic_name" id="clinic_name" value="{{ old('clinic_name') }}" placeholder="e.g. Companion Animal Hospital"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
             </div>
 
             <div>
                 <label for="expertise" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Areas of Specialization / Expertise</label>
                 <input type="text" name="expertise" id="expertise" value="{{ old('expertise', 'Small Animal Internal Medicine, Surgical Care') }}" required
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
             </div>
 
             <div>
@@ -104,12 +104,12 @@
                 <div>
                     <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Password</label>
                     <input type="password" name="password" id="password" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
                 <div>
                     <label for="password_confirmation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Confirm Password</label>
                     <input type="password" name="password_confirmation" id="password_confirmation" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
             </div>
 

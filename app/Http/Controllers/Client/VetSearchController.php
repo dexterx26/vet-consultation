@@ -23,7 +23,7 @@ class VetSearchController extends Controller
 
         $query = User::where('role', 'veterinarian')
             ->where('status', 'active')
-            ->with(['vetProfile', 'vetProfile.reviews']);
+            ->with(['vetProfile', 'vetProfile.reviews.client']);
 
         // Filter by Animal Type
         if ($request->filled('animal_type')) {

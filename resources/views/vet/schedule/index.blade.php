@@ -15,12 +15,12 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Base Consultation Fee (₱) *</label>
                     <input type="number" step="0.01" name="consultation_fee" value="{{ old('consultation_fee', $profile->consultation_fee) }}" required
-                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Clinic / Hospital Name</label>
                     <input type="text" name="clinic_name" value="{{ old('clinic_name', $profile->clinic_name) }}"
-                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
                 </div>
             </div>
 
@@ -33,7 +33,7 @@
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
                         <input type="number" step="0.01" name="additional_pet_fee" value="{{ old('additional_pet_fee', $profile->effective_additional_pet_fee) }}" required min="0"
-                            class="w-full pl-7 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                            class="w-full pl-7 pr-3.5 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
                     </div>
                     <span class="text-[11px] text-slate-500 mt-1 block">Fee added for each additional pet included in a consultation.</span>
                 </div>
@@ -43,7 +43,7 @@
                     </label>
                     <div class="relative">
                         <input type="number" name="additional_pet_duration" value="{{ old('additional_pet_duration', $profile->effective_additional_pet_duration) }}" required min="1" max="120"
-                            class="w-full pr-12 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                            class="w-full pl-3.5 pr-12 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white">
                         <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">mins</span>
                     </div>
                     <span class="text-[11px] text-slate-500 mt-1 block">Extra duration added to the video call / chat session for each extra pet.</span>
@@ -54,24 +54,24 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Languages Spoken</label>
                     <input type="text" name="languages" value="{{ old('languages', $profile->languages) }}" placeholder="e.g. English, Tagalog"
-                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Clinic Street Address</label>
                     <input type="text" name="clinic_address" value="{{ old('clinic_address', $profile->clinic_address) }}"
-                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                        class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Areas of Expertise</label>
                 <input type="text" name="expertise" value="{{ old('expertise', $profile->expertise) }}" required
-                    class="w-full rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                    class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Professional Bio</label>
-                <textarea name="bio" rows="3" class="w-full rounded-xl border-slate-200 text-sm py-2 focus:ring-brand-500 focus:border-brand-500">{{ old('bio', $profile->bio) }}</textarea>
+                <textarea name="bio" rows="3" class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">{{ old('bio', $profile->bio) }}</textarea>
             </div>
 
             <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-sm">
@@ -88,7 +88,7 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Day of Week</label>
-                <select name="day_of_week" required class="w-full rounded-xl border-slate-200 text-xs py-2">
+                <select name="day_of_week" required class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
                     <option value="1">Monday</option>
                     <option value="2">Tuesday</option>
                     <option value="3">Wednesday</option>
@@ -100,11 +100,11 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Start Time</label>
-                <input type="time" name="start_time" value="09:00" required class="w-full rounded-xl border-slate-200 text-xs py-2">
+                <input type="time" name="start_time" value="09:00" required class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">End Time</label>
-                <input type="time" name="end_time" value="17:00" required class="w-full rounded-xl border-slate-200 text-xs py-2">
+                <input type="time" name="end_time" value="17:00" required class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
             </div>
             <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs py-2.5 px-4 rounded-xl">
                 Add Slot

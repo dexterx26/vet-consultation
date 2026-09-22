@@ -18,11 +18,11 @@
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Species Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Ferret" class="w-full rounded-xl border-slate-200 text-xs py-2">
+                    <input type="text" name="name" required placeholder="e.g. Ferret" class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">FontAwesome Icon</label>
-                    <input type="text" name="icon" value="fa-paw" required class="w-full rounded-xl border-slate-200 text-xs py-2">
+                    <input type="text" name="icon" value="fa-paw" required class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
                 </div>
                 <button type="submit" class="w-full bg-brand-600 text-white font-semibold text-xs py-2.5 rounded-xl">Add Animal Type</button>
             </form>
@@ -34,7 +34,7 @@
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Animal Category</label>
-                    <select name="animal_type_id" required class="w-full rounded-xl border-slate-200 text-xs py-2">
+                    <select name="animal_type_id" required class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
                         @foreach($animalTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                         @endforeach
@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Breed Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Beagle" class="w-full rounded-xl border-slate-200 text-xs py-2">
+                    <input type="text" name="name" required placeholder="e.g. Beagle" class="w-full rounded-xl border-slate-200 text-xs py-2 px-3">
                 </div>
                 <button type="submit" class="w-full bg-slate-800 text-white font-semibold text-xs py-2.5 rounded-xl">Add Breed</button>
             </form>

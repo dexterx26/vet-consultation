@@ -261,12 +261,12 @@
                     <div>
                         <label for="suggested_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">New Date *</label>
                         <input type="date" name="suggested_date" id="suggested_date" x-model="suggestedDate" min="{{ date('Y-m-d') }}" required
-                               class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5">
+                               class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5 px-3.5">
                     </div>
                     <div>
                         <label for="suggested_time" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">New Time *</label>
                         <select name="suggested_time" id="suggested_time" x-model="suggestedTime" required
-                                class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5">
+                                class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5 px-3.5">
                             <option value="09:00:00">09:00 AM</option>
                             <option value="10:00:00">10:00 AM</option>
                             <option value="11:00:00">11:00 AM</option>
@@ -282,7 +282,7 @@
                     <label for="reschedule_note" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Reason / Note to Client *</label>
                     <textarea name="reschedule_note" id="reschedule_note" x-model="rescheduleNote" rows="3" required
                               placeholder="e.g. I have an emergency surgery in the morning, can we consult at 2:00 PM instead?"
-                              class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5"></textarea>
+                              class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 text-xs py-2.5 px-3.5"></textarea>
                 </div>
 
                 <div class="bg-indigo-50/60 border border-indigo-200/80 rounded-2xl p-3 text-[11px] text-indigo-900">
@@ -309,7 +309,7 @@
             <form method="POST" action="{{ route('vet.requests.decline', $consultation) }}" class="space-y-4">
                 @csrf
                 <textarea name="decline_reason" rows="3" required placeholder="State the reason for declining..."
-                          class="w-full rounded-xl border-slate-200 focus:border-rose-500 focus:ring-rose-500 text-xs py-2.5"></textarea>
+                          class="w-full rounded-xl border-slate-200 focus:border-rose-500 focus:ring-rose-500 text-xs py-2.5 px-3.5"></textarea>
                 <div class="flex justify-end space-x-2">
                     <button type="button" @click="declineModalOpen = false" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
                     <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Confirm Decline</button>

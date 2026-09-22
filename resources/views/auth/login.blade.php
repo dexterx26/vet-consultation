@@ -36,7 +36,7 @@
                         <i class="fa-solid fa-envelope"></i>
                     </span>
                     <input type="email" name="email" id="email" value="{{ old('email', 'client@gmail.com') }}" required autofocus
-                        class="pl-10 w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="pl-10 pr-3.5 w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
                 </div>
                 @error('email')
                     <p class="text-rose-500 text-xs mt-1.5 font-medium">{{ $message }}</p>
@@ -50,7 +50,7 @@
                         <i class="fa-solid fa-lock"></i>
                     </span>
                     <input type="password" name="password" id="password" value="password" required
-                        class="pl-10 w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="pl-10 pr-3.5 w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
                 </div>
                 @error('password')
                     <p class="text-rose-500 text-xs mt-1.5 font-medium">{{ $message }}</p>

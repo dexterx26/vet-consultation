@@ -23,13 +23,13 @@
                 <div>
                     <label for="name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Pet Name *</label>
                     <input type="text" name="name" id="name" value="{{ old('name', $pet->name) }}" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('name') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label for="animal_type_id" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Animal Category *</label>
-                    <select name="animal_type_id" id="animal_type_id" required class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    <select name="animal_type_id" id="animal_type_id" required class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                         @foreach($animalTypes as $type)
                             <option value="{{ $type->id }}" {{ old('animal_type_id', $pet->animal_type_id) == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
                         @endforeach
@@ -41,12 +41,12 @@
                 <div>
                     <label for="custom_breed" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Breed / Mix</label>
                     <input type="text" name="custom_breed" id="custom_breed" value="{{ old('custom_breed', $pet->custom_breed) }}" placeholder="e.g. Golden Retriever / Mixed"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
 
                 <div>
                     <label for="sex" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Sex *</label>
-                    <select name="sex" id="sex" required class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    <select name="sex" id="sex" required class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                         <option value="Male" {{ old('sex', $pet->sex) == 'Male' ? 'selected' : '' }}>Male</option>
                         <option value="Female" {{ old('sex', $pet->sex) == 'Female' ? 'selected' : '' }}>Female</option>
                     </select>
@@ -54,22 +54,29 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="age_text" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Age</label>
-                    <input type="text" name="age_text" id="age_text" value="{{ old('age_text', $pet->age_text) }}" placeholder="e.g. 3 years old"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                <div x-data="petBirthdayCalculator('{{ old('dob', $pet->dob ? $pet->dob->format('Y-m-d') : '') }}')">
+                    <div class="flex items-center justify-between mb-1">
+                        <label for="dob" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Birthday *</label>
+                        <template x-if="calculatedAge">
+                            <span class="text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full" x-text="calculatedAge"></span>
+                        </template>
+                    </div>
+                    <input type="date" name="dob" id="dob" value="{{ old('dob', $pet->dob ? $pet->dob->format('Y-m-d') : '') }}" required max="{{ date('Y-m-d') }}"
+                        x-model="dob" @change="calculateAge()"
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
+                    @error('dob') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label for="weight" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Weight</label>
                     <input type="text" name="weight" id="weight" value="{{ old('weight', $pet->weight) }}" placeholder="e.g. 6.5 kg"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
 
                 <div>
                     <label for="color" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Color / Markings</label>
                     <input type="text" name="color" id="color" value="{{ old('color', $pet->color) }}" placeholder="e.g. White & Brown"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
             </div>
 
@@ -82,19 +89,19 @@
             <div>
                 <label for="existing_conditions" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Existing Medical Conditions</label>
                 <textarea name="existing_conditions" id="existing_conditions" rows="2"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2 shadow-sm">{{ old('existing_conditions', $pet->existing_conditions) }}</textarea>
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">{{ old('existing_conditions', $pet->existing_conditions) }}</textarea>
             </div>
 
             <div>
                 <label for="allergies" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Known Allergies</label>
                 <textarea name="allergies" id="allergies" rows="2"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2 shadow-sm">{{ old('allergies', $pet->allergies) }}</textarea>
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">{{ old('allergies', $pet->allergies) }}</textarea>
             </div>
 
             <div>
                 <label for="vaccination_info" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Vaccination History</label>
                 <textarea name="vaccination_info" id="vaccination_info" rows="2"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2 shadow-sm">{{ old('vaccination_info', $pet->vaccination_info) }}</textarea>
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">{{ old('vaccination_info', $pet->vaccination_info) }}</textarea>
             </div>
 
             <div class="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -105,4 +112,58 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    function petBirthdayCalculator(initialDob) {
+        return {
+            dob: initialDob || '',
+            calculatedAge: '',
+            init() {
+                if (this.dob) this.calculateAge();
+            },
+            calculateAge() {
+                if (!this.dob) {
+                    this.calculatedAge = '';
+                    return;
+                }
+                const birthDate = new Date(this.dob + 'T00:00:00');
+                const today = new Date();
+                if (isNaN(birthDate.getTime()) || birthDate > today) {
+                    this.calculatedAge = '';
+                    return;
+                }
+                let years = today.getFullYear() - birthDate.getFullYear();
+                let months = today.getMonth() - birthDate.getMonth();
+                let days = today.getDate() - birthDate.getDate();
+
+                if (days < 0) {
+                    months--;
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                if (years >= 1) {
+                    this.calculatedAge = years + (years === 1 ? ' yr' : ' yrs') + (months > 0 ? ` ${months} mo` + (months > 1 ? 's' : '') : '') + ' old';
+                } else if (months >= 1) {
+                    this.calculatedAge = months + (months === 1 ? ' month' : ' months') + ' old';
+                } else {
+                    const diffTime = Math.abs(today - birthDate);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    const weeks = Math.floor(diffDays / 7);
+                    if (weeks >= 1) {
+                        this.calculatedAge = weeks + (weeks === 1 ? ' week' : ' weeks') + ' old';
+                    } else if (diffDays > 0) {
+                        this.calculatedAge = diffDays + (diffDays === 1 ? ' day' : ' days') + ' old';
+                    } else {
+                        this.calculatedAge = 'Newborn';
+                    }
+                }
+            }
+        };
+    }
+</script>
+@endpush
 @endsection

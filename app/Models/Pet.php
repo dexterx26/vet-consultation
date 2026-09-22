@@ -5,9 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Carbon\Carbon;
+use Illuminate\Support\Str;
+
 class Pet extends Model
 {
     use HasFactory;
+
+    protected static function booted()
+    {
+        static::saving(function ($pet) {
+            if ($pet->dob) {
+                $pet->attributes['age_text'] = static::calculateAgeText($pet->dob);
+            }
+        });
+    }
 
     protected $fillable = [
         'user_id',
@@ -63,5 +75,53 @@ class Pet extends Model
             return $this->breed->name;
         }
         return $this->custom_breed ?: 'Mixed / Unknown';
+    }
+
+    public function getAgeTextAttribute($value)
+    {
+        if ($this->dob) {
+            return static::calculateAgeText($this->dob);
+        }
+        return $value ?: 'N/A';
+    }
+
+    public static function calculateAgeText($dob): string
+    {
+        if (!$dob) {
+            return 'N/A';
+        }
+
+        $dobCarbon = $dob instanceof Carbon ? $dob : Carbon::parse($dob);
+        $now = Carbon::now();
+
+        if ($dobCarbon->isFuture()) {
+            return 'Newborn';
+        }
+
+        $diffYears = (int) $dobCarbon->diffInYears($now);
+        $diffMonths = (int) ($dobCarbon->diffInMonths($now) % 12);
+        $diffDays = (int) $dobCarbon->diffInDays($now);
+
+        if ($diffYears >= 1) {
+            if ($diffMonths > 0) {
+                return $diffYears . ' ' . Str::plural('year', $diffYears) . ' ' . $diffMonths . ' ' . Str::plural('month', $diffMonths) . ' old';
+            }
+            return $diffYears . ' ' . Str::plural('year', $diffYears) . ' old';
+        }
+
+        if ($diffMonths >= 1) {
+            return $diffMonths . ' ' . Str::plural('month', $diffMonths) . ' old';
+        }
+
+        $diffWeeks = (int) floor($diffDays / 7);
+        if ($diffWeeks >= 1) {
+            return $diffWeeks . ' ' . Str::plural('week', $diffWeeks) . ' old';
+        }
+
+        if ($diffDays > 0) {
+            return $diffDays . ' ' . Str::plural('day', $diffDays) . ' old';
+        }
+
+        return 'Newborn';
     }
 }

@@ -68,7 +68,7 @@
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
                         <input type="number" step="0.01" name="consultation_fee" value="{{ old('consultation_fee', $vet->vetProfile->consultation_fee ?? 500.00) }}" required min="0"
-                               class="w-full pl-7 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                               class="w-full pl-7 pr-3.5 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
                     </div>
                 </div>
 
@@ -79,7 +79,7 @@
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
                         <input type="number" step="0.01" name="additional_pet_fee" value="{{ old('additional_pet_fee', $vet->vetProfile->effective_additional_pet_fee) }}" required min="0"
-                               class="w-full pl-7 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                               class="w-full pl-7 pr-3.5 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
                     </div>
                 </div>
 
@@ -89,7 +89,7 @@
                     </label>
                     <div class="relative">
                         <input type="number" name="additional_pet_duration" value="{{ old('additional_pet_duration', $vet->vetProfile->effective_additional_pet_duration) }}" required min="1" max="120"
-                               class="w-full pr-12 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                               class="w-full pl-3.5 pr-12 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
                         <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">mins</span>
                     </div>
                 </div>

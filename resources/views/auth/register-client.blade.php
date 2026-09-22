@@ -19,7 +19,7 @@
             <div>
                 <label for="name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
                 <input type="text" name="name" id="name" value="{{ old('name') }}" required placeholder="e.g. Maria Clara"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 @error('name') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -27,13 +27,13 @@
                 <div>
                     <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email Address</label>
                     <input type="email" name="email" id="email" value="{{ old('email') }}" required placeholder="name@example.com"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('email') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="phone" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Mobile Number</label>
                     <input type="text" name="phone" id="phone" value="{{ old('phone') }}" required placeholder="09171234567"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('phone') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -42,13 +42,13 @@
                 <div>
                     <label for="city" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">City / Municipality</label>
                     <input type="text" name="city" id="city" value="{{ old('city', 'Quezon City') }}" required placeholder="e.g. Quezon City"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('city') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="province" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Province</label>
                     <input type="text" name="province" id="province" value="{{ old('province', 'Metro Manila') }}" required placeholder="e.g. Metro Manila"
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('province') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -56,20 +56,20 @@
             <div>
                 <label for="address" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Street Address (Optional)</label>
                 <input type="text" name="address" id="address" value="{{ old('address') }}" placeholder="House / Unit No., Street, Subdivision"
-                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                    class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Password</label>
                     <input type="password" name="password" id="password" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                     @error('password') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="password_confirmation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Confirm Password</label>
                     <input type="password" name="password_confirmation" id="password_confirmation" required
-                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 shadow-sm">
+                        class="w-full rounded-xl border-slate-200 focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3.5 shadow-sm">
                 </div>
             </div>
 
