@@ -17,6 +17,7 @@ class ClinicalNoteController extends Controller
             abort(403);
         }
 
+        $consultation->load(['pets.animalType', 'pets.breed', 'pet.animalType', 'pet.breed', 'vet.vetProfile', 'client.clientProfile']);
         $record = $consultation->record ?: new ConsultationRecord();
         return view('vet.records.create', compact('consultation', 'record'));
     }
@@ -37,7 +38,7 @@ class ClinicalNoteController extends Controller
             'additional_notes' => 'nullable|string',
         ]);
 
-        ConsultationRecord::updateOrCreate(
+        $record = ConsultationRecord::updateOrCreate(
             ['consultation_id' => $consultation->id],
             $request->only([
                 'symptoms', 'assessment', 'recommendations', 'treatment_advice',
@@ -49,14 +50,46 @@ class ClinicalNoteController extends Controller
             $consultation->update(['status' => 'completed']);
         }
 
+        $hasPrescription = !empty($request->medication_info);
+        $notifTitle = $hasPrescription ? 'Prescription & Medical Record Ready 📋💊' : 'Clinical Record Available 📋';
+        $notifMsg = $hasPrescription 
+            ? 'Dr. ' . Auth::user()->name . ' has issued a digital prescription & medical record for ' . ($consultation->pet->name ?? 'your pet') . '.'
+            : 'Dr. ' . Auth::user()->name . ' has completed the consultation medical notes for ' . ($consultation->pet->name ?? 'your pet') . '.';
+
         AppNotification::create([
             'user_id' => $consultation->client_id,
-            'title' => 'Clinical Record Available 📋',
-            'message' => 'Dr. ' . Auth::user()->name . ' has added consultation records & prescriptions for ' . $consultation->pet->name . '.',
+            'title' => $notifTitle,
+            'message' => $notifMsg,
             'type' => 'info',
             'is_read' => false,
         ]);
 
-        return redirect()->route('vet.requests.show', $consultation)->with('success', 'Medical consultation record saved successfully!');
+        $successMsg = $hasPrescription 
+            ? 'Medical consultation record and digital prescription saved successfully!' 
+            : 'Medical consultation record saved successfully!';
+
+        return redirect()->route('vet.requests.show', $consultation)->with('success', $successMsg);
+    }
+
+    public function showPrescription(Consultation $consultation)
+    {
+        $user = Auth::user();
+        if ($consultation->client_id !== $user->id && $consultation->vet_id !== $user->id && !$user->isAdmin()) {
+            abort(403, 'Unauthorized access to prescription.');
+        }
+
+        $record = $consultation->record;
+        if (!$record || empty($record->medication_info)) {
+            return redirect()->back()->with('warning', 'No prescription has been issued yet for this consultation.');
+        }
+
+        $consultation->load([
+            'pets.animalType', 'pets.breed',
+            'pet.animalType', 'pet.breed',
+            'vet.vetProfile',
+            'client.clientProfile'
+        ]);
+
+        return view('consultation.prescription', compact('consultation', 'record'));
     }
 }

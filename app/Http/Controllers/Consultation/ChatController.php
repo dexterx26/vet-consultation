@@ -219,7 +219,7 @@ class ChatController extends Controller
         ]);
     }
 
-    public function endChat(Consultation $consultation)
+    public function endChat(Request $request, Consultation $consultation)
     {
         $user = Auth::user();
         $this->authorizeConsultationUser($consultation, $user);
@@ -269,7 +269,10 @@ class ChatController extends Controller
         ]);
 
         if ($isVet) {
-            return redirect()->route('vet.records.create', $consultation)->with('info', 'Chat consultation ended. Please fill out the consultation clinical record.');
+            if ($request->input('redirect_to') === 'summary') {
+                return redirect()->route('vet.requests.show', $consultation)->with('info', 'Chat consultation ended.');
+            }
+            return redirect()->route('vet.records.create', $consultation)->with('info', 'Chat consultation ended. Please issue the prescription and complete the clinical record.');
         }
 
         return redirect()->route('client.bookings.show', $consultation)->with('info', 'Chat consultation ended.');

@@ -168,32 +168,75 @@
         </div>
     </div>
 
-    <!-- Auto-ended notification overlay -->
+    <!-- Auto-ended notification overlay / Post-call Wrap-up -->
     <div x-show="callTimeExpired"
          x-transition
          class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4"
          style="display: none;">
-        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl border border-slate-200">
-            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl sm:text-2xl mx-auto shadow-inner">
-                <i class="fa-solid fa-stopwatch"></i>
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-5 shadow-2xl border border-slate-200">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl sm:text-2xl mx-auto shadow-inner">
+                <i class="fa-solid fa-flag-checkered"></i>
             </div>
-            <h3 class="font-bold text-slate-800 text-base sm:text-lg" x-text="remainingSeconds <= 0 ? 'Consultation Time Limit Reached' : 'Consultation Ended'">Consultation Ended</h3>
-            <p class="text-xs text-slate-500 leading-relaxed" x-text="remainingSeconds <= 0 ? ('The ' + timeLimitMinutes + '-minute video consultation period has completed. You are now being redirected.') : 'The consultation has ended. You are now being redirected to the summary.'">
-                The consultation has ended. You are now being redirected.
-            </p>
+            
+            <div>
+                <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl">Consultation Call Concluded</h3>
+                <p class="text-xs text-slate-500 mt-1" x-text="remainingSeconds <= 0 ? ('The ' + timeLimitMinutes + '-minute video consultation period has completed.') : 'The video consultation call has concluded.'"></p>
+            </div>
+
+            <!-- Session Summary Pill -->
+            <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 text-xs flex items-center justify-around text-slate-700">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Duration</span>
+                    <strong class="text-slate-900 font-mono" x-text="formattedConsumed"></strong>
+                </div>
+                <div class="border-r border-slate-200 h-6"></div>
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Patient</span>
+                    <strong class="text-slate-900">{{ $consultation->pet->name }}</strong>
+                </div>
+                <div class="border-r border-slate-200 h-6"></div>
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Client</span>
+                    <strong class="text-slate-900">{{ $consultation->client->name }}</strong>
+                </div>
+            </div>
+
             @if($isVet)
-                <template x-if="remainingSeconds <= 0">
-                    <div class="pt-1">
-                        <button type="button" @click="callTimeExpired = false; showAddFreeTimeModal = true;"
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow">
-                            + Add Complimentary Time to Continue
-                        </button>
+                <div class="space-y-2.5 pt-1">
+                    <p class="text-xs text-slate-600 font-medium">Would you like to issue a prescription and complete the consultation record?</p>
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-2">
+                        <a href="{{ route('vet.records.create', $consultation) }}"
+                           class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-file-prescription text-sm"></i>
+                            <span>Create Prescription & Record</span>
+                        </a>
+                        <a href="{{ route('vet.requests.show', $consultation) }}"
+                           class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-3 px-4 rounded-xl transition-all whitespace-nowrap">
+                            Consultation Overview
+                        </a>
                     </div>
-                </template>
+
+                    <template x-if="remainingSeconds <= 0">
+                        <div class="pt-2 border-t border-slate-100">
+                            <button type="button" @click="callTimeExpired = false; showAddFreeTimeModal = true;"
+                                    class="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center justify-center space-x-1 mx-auto">
+                                <i class="fa-solid fa-gift"></i>
+                                <span>+ Add Complimentary Time to Reopen Call</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            @else
+                <div class="space-y-3 pt-1">
+                    <p class="text-xs text-slate-500">Thank you for attending your teleconsultation. Dr. {{ $consultation->vet->name }} will prepare your pet's clinical record and prescription if needed.</p>
+                    <a href="{{ route('client.bookings.show', $consultation) }}"
+                       class="inline-flex items-center justify-center space-x-1.5 w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-md transition-all">
+                        <span>View Consultation Summary</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
             @endif
-            <div class="pt-2">
-                <span class="text-xs text-brand-600 font-bold animate-pulse">Redirecting...</span>
-            </div>
         </div>
     </div>
 
@@ -276,6 +319,52 @@
             </div>
         </div>
     </div>
+
+    <!-- Doctor End Call Confirmation & Prescription Options Modal -->
+    @if($isVet)
+    <div x-show="showEndCallModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;" x-transition>
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200" @click.outside="showEndCallModal = false">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-base font-bold">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base">Conclude Video Call</h3>
+                        <p class="text-[11px] text-slate-500">Teleconsultation for {{ $consultation->pet->name }}</p>
+                    </div>
+                </div>
+                <button type="button" @click="showEndCallModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Ending this call will complete the consultation. What would you like to do next?
+            </p>
+
+            <form id="endCallForm" method="POST" action="{{ route('consultation.video.end', $consultation) }}" class="space-y-2">
+                @csrf
+                <input type="hidden" name="redirect_to" id="endCallRedirectTo" value="records">
+
+                <button type="button" @click="submitEndCall('records')"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all">
+                    <i class="fa-solid fa-file-prescription text-sm"></i>
+                    <span>End Call & Create Prescription</span>
+                </button>
+
+                <button type="button" @click="submitEndCall('summary')"
+                        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 px-4 rounded-xl transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>End Call Only (Go to Summary)</span>
+                </button>
+
+                <button type="button" @click="showEndCallModal = false"
+                        class="w-full text-slate-400 hover:text-slate-600 text-xs py-2 font-semibold">
+                    Cancel & Continue Call
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
 
     <!-- Main Video Grid Container -->
     <div id="videoRoomContainer"
@@ -384,15 +473,25 @@
             </button>
 
             <!-- End Call Red Button -->
-            <form id="endCallForm" method="POST" action="{{ route('consultation.video.end', $consultation) }}" class="m-0 p-0 flex items-center">
-                @csrf
-                <button type="submit" onclick="return confirm('End this video consultation call?');"
-                        class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg shadow-rose-600/40 transition-all flex items-center space-x-1.5 sm:space-x-2 shrink-0 focus:outline-none">
+            @if($isVet)
+                <button type="button" @click="showEndCallModal = true"
+                        class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg shadow-rose-600/40 transition-all flex items-center space-x-1.5 sm:space-x-2 shrink-0 focus:outline-none"
+                        title="End Call & Consultation Options">
                     <i class="fa-solid fa-phone-slash text-xs sm:text-sm"></i>
                     <span class="hidden xs:inline">End Call</span>
                     <span class="xs:hidden">End</span>
                 </button>
-            </form>
+            @else
+                <form id="endCallFormClient" method="POST" action="{{ route('consultation.video.end', $consultation) }}" class="m-0 p-0 flex items-center">
+                    @csrf
+                    <button type="submit" onclick="return confirm('End this video consultation call?');"
+                            class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg shadow-rose-600/40 transition-all flex items-center space-x-1.5 sm:space-x-2 shrink-0 focus:outline-none">
+                        <i class="fa-solid fa-phone-slash text-xs sm:text-sm"></i>
+                        <span class="hidden xs:inline">End Call</span>
+                        <span class="xs:hidden">End</span>
+                    </button>
+                </form>
+            @endif
         </div>
 
     </div>
@@ -440,7 +539,8 @@
             isFullscreen: false,
             isEchoConnected: false,
 
-            // Extension Modals & State
+            // End Call & Extension Modals & State
+            showEndCallModal: false,
             showAddFreeTimeModal: false,
             showExtensionModal: false,
             showTimeExtendedBanner: false,
@@ -448,6 +548,13 @@
             selectedMinutes: (extensionPackages && extensionPackages.length > 0) ? extensionPackages[0].minutes : 10,
             pendingExtension: null,
             isExtending: false,
+
+            submitEndCall(redirectTo) {
+                const form = document.getElementById('endCallForm');
+                const input = document.getElementById('endCallRedirectTo');
+                if (input) input.value = redirectTo;
+                if (form) form.submit();
+            },
 
             get selectedCredits() {
                 const pkg = this.extensionPackages.find(p => p.minutes === this.selectedMinutes);
@@ -821,15 +928,6 @@
                 if (this.localStream) {
                     this.localStream.getTracks().forEach(t => t.stop());
                 }
-
-                // Redirect after 1.5 seconds so user sees notification
-                setTimeout(() => {
-                    if (this.isVet) {
-                        window.location.href = "{{ route('vet.records.create', $consultation) }}";
-                    } else {
-                        window.location.href = "{{ route('client.bookings.show', $consultation) }}";
-                    }
-                }, 1500);
             },
 
             checkCameraDevices() {

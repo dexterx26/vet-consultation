@@ -80,7 +80,7 @@ class VideoController extends Controller
         ));
     }
 
-    public function endCall(Consultation $consultation)
+    public function endCall(Request $request, Consultation $consultation)
     {
         $user = Auth::user();
         if ($consultation->client_id !== $user->id && $consultation->vet_id !== $user->id && !$user->isAdmin()) {
@@ -125,7 +125,10 @@ class VideoController extends Controller
         ]);
 
         if ($isVet) {
-            return redirect()->route('vet.records.create', $consultation)->with('info', 'Video call ended. Please fill out the consultation clinical record.');
+            if ($request->input('redirect_to') === 'summary') {
+                return redirect()->route('vet.requests.show', $consultation)->with('info', 'Video call ended.');
+            }
+            return redirect()->route('vet.records.create', $consultation)->with('info', 'Video call ended. Please issue the prescription and complete the clinical record.');
         }
 
         return redirect()->route('client.bookings.show', $consultation)->with('info', 'Video call ended.');

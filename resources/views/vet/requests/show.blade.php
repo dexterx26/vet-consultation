@@ -77,8 +77,25 @@
                     <i class="fa-solid fa-comments"></i>
                     <span>Open Chat Room</span>
                 </a>
-                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all">
-                    Write Clinical Notes
+                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all">
+                    <i class="fa-solid fa-file-prescription"></i>
+                    <span>Prescription & Notes</span>
+                </a>
+            @elseif($consultation->status === 'completed')
+                <a href="{{ route('consultation.chat', $consultation) }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center space-x-1.5 transition-all">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Review Chat</span>
+                </a>
+                @if($consultation->record && !empty($consultation->record->medication_info))
+                    <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                       class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Print Rx Slip</span>
+                    </a>
+                @endif
+                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center space-x-1.5 transition-all">
+                    <i class="fa-solid fa-file-prescription"></i>
+                    <span>{{ $consultation->record ? 'Edit Prescription & Record' : 'Create Prescription & Record' }}</span>
                 </a>
             @endif
         </div>
@@ -230,6 +247,98 @@
             </div>
         @endif
     </div>
+
+    <!-- Clinical Record & Prescription Card (if present or completed) -->
+    @if($consultation->record)
+        <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                        <i class="fa-solid fa-file-prescription"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Veterinary Clinical Record & Prescription</h2>
+                        <p class="text-xs text-slate-500">Official medical documentation for {{ $consultation->pet->name }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    @if(!empty($consultation->record->medication_info))
+                        <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                           class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-print"></i>
+                            <span>View / Print Official Rx</span>
+                        </a>
+                    @endif
+                    <a href="{{ route('vet.records.create', $consultation) }}" class="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition-colors">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit Record</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                @if($consultation->record->symptoms)
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                        <strong class="text-slate-800 block mb-1 text-[11px] uppercase tracking-wider">Observed Symptoms & Complaints:</strong>
+                        <p class="text-slate-700 leading-relaxed">{{ $consultation->record->symptoms }}</p>
+                    </div>
+                @endif
+
+                @if($consultation->record->assessment)
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                        <strong class="text-slate-800 block mb-1 text-[11px] uppercase tracking-wider">Clinical Diagnosis / Assessment:</strong>
+                        <p class="text-slate-700 leading-relaxed font-semibold">{{ $consultation->record->assessment }}</p>
+                    </div>
+                @endif
+
+                @if($consultation->record->recommendations)
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                        <strong class="text-slate-800 block mb-1 text-[11px] uppercase tracking-wider">Recommendations & Care Advice:</strong>
+                        <p class="text-slate-700 leading-relaxed">{{ $consultation->record->recommendations }}</p>
+                    </div>
+                @endif
+
+                @if($consultation->record->medication_info)
+                    <div class="bg-emerald-50/50 p-5 rounded-2xl border-2 border-emerald-300 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2 text-emerald-900 font-extrabold text-sm">
+                                <span class="text-2xl font-serif font-black italic text-emerald-700">℞</span>
+                                <span>Prescribed Medication (Rx)</span>
+                            </div>
+                            <span class="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Official Prescription</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-emerald-200 text-slate-900 font-medium whitespace-pre-line leading-relaxed text-xs">
+{{ $consultation->record->medication_info }}
+                        </div>
+                    </div>
+                @endif
+
+                @if($consultation->record->follow_up_instructions)
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                        <strong class="text-slate-800 block mb-1 text-[11px] uppercase tracking-wider">Follow-up Instructions:</strong>
+                        <p class="text-slate-700 leading-relaxed">{{ $consultation->record->follow_up_instructions }}</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @elseif($consultation->status === 'completed')
+        <!-- Prompt to Create Prescription if Completed but No Record -->
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 sm:p-7 text-xs shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center space-x-2 font-bold text-amber-900 text-sm">
+                    <i class="fa-solid fa-file-circle-exclamation text-amber-600 text-base"></i>
+                    <span>Consultation Concluded — Prescription / Medical Record Pending</span>
+                </div>
+                <p class="text-slate-600">The teleconsultation is completed, but you haven't filled out the clinical notes and prescription for {{ $consultation->pet->name }} yet.</p>
+            </div>
+            <a href="{{ route('vet.records.create', $consultation) }}"
+               class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all shrink-0">
+                <i class="fa-solid fa-file-prescription"></i>
+                <span>Create Prescription & Record</span>
+            </a>
+        </div>
+    @endif
 
     <!-- Modal: Doctor Suggests Another Time Slot -->
     <div x-show="rescheduleModalOpen"

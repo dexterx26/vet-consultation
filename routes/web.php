@@ -130,6 +130,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/consultation/{consultation}/video/end', [Consultation\VideoController::class, 'endCall'])->name('consultation.video.end');
     Route::post('/consultation/{consultation}/sync-time', [Consultation\TimeSyncController::class, 'sync'])->name('consultation.sync-time');
 
+    // Prescription View / Print
+    Route::get('/consultation/{consultation}/prescription', [Vet\ClinicalNoteController::class, 'showPrescription'])->name('consultation.prescription.show');
+
     // Time Extensions
     Route::post('/consultation/{consultation}/doctor-add-time', [Consultation\TimeExtensionController::class, 'doctorAddTime'])->name('consultation.doctor-add-time');
     Route::post('/consultation/{consultation}/request-extension', [Consultation\TimeExtensionController::class, 'requestExtension'])->name('consultation.request-extension');

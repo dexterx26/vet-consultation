@@ -204,28 +204,68 @@
                 @endif
             </div>
 
-            <!-- Medical Record (if completed) -->
+            <!-- Medical Record & Prescription (if completed) -->
             @if($consultation->record)
-                <div class="bg-emerald-50/50 border border-emerald-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                    <div class="flex items-center space-x-2 text-emerald-800">
-                        <i class="fa-solid fa-clipboard-check text-emerald-600 text-lg"></i>
-                        <h3 class="font-bold text-base">Veterinarian Clinical Record</h3>
+                <div class="bg-emerald-50/50 border border-emerald-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center space-x-2.5 text-emerald-800">
+                            <i class="fa-solid fa-clipboard-check text-emerald-600 text-xl"></i>
+                            <div>
+                                <h3 class="font-extrabold text-base text-slate-900">Veterinary Clinical Record & Prescription</h3>
+                                <p class="text-[11px] text-slate-500">Issued by Dr. {{ $consultation->vet->name }} (PRC: {{ $consultation->vet->vetProfile->license_number ?? 'PRC-VET' }})</p>
+                            </div>
+                        </div>
+
+                        @if(!empty($consultation->record->medication_info))
+                            <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                               class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-md shadow-emerald-600/20 flex items-center space-x-1.5 transition-all">
+                                <i class="fa-solid fa-file-prescription"></i>
+                                <span>View & Print Official Rx</span>
+                            </a>
+                        @endif
                     </div>
 
-                    <div class="space-y-3 text-xs text-slate-700">
+                    <div class="space-y-3.5 text-xs text-slate-700">
                         @if($consultation->record->symptoms)
-                            <div><strong class="text-slate-900">Symptoms Observed:</strong> <p class="mt-0.5">{{ $consultation->record->symptoms }}</p></div>
+                            <div class="bg-white/80 p-3.5 rounded-2xl border border-slate-200/60">
+                                <strong class="text-slate-900 block mb-0.5">Symptoms Observed:</strong>
+                                <p class="text-slate-700 leading-relaxed">{{ $consultation->record->symptoms }}</p>
+                            </div>
                         @endif
                         @if($consultation->record->assessment)
-                            <div><strong class="text-slate-900">Clinical Diagnosis / Assessment:</strong> <p class="mt-0.5">{{ $consultation->record->assessment }}</p></div>
+                            <div class="bg-white/80 p-3.5 rounded-2xl border border-slate-200/60">
+                                <strong class="text-slate-900 block mb-0.5">Clinical Diagnosis / Assessment:</strong>
+                                <p class="text-slate-700 leading-relaxed">{{ $consultation->record->assessment }}</p>
+                            </div>
                         @endif
                         @if($consultation->record->recommendations)
-                            <div><strong class="text-slate-900">Recommendations & Treatment:</strong> <p class="mt-0.5">{{ $consultation->record->recommendations }}</p></div>
+                            <div class="bg-white/80 p-3.5 rounded-2xl border border-slate-200/60">
+                                <strong class="text-slate-900 block mb-0.5">Recommendations & Care Instructions:</strong>
+                                <p class="text-slate-700 leading-relaxed">{{ $consultation->record->recommendations }}</p>
+                            </div>
                         @endif
                         @if($consultation->record->medication_info)
-                            <div class="bg-white p-4 rounded-2xl border border-emerald-200">
-                                <strong class="text-emerald-900 flex items-center"><i class="fa-solid fa-pills mr-1"></i> Prescribed Medication:</strong>
-                                <p class="mt-1 font-medium">{{ $consultation->record->medication_info }}</p>
+                            <div class="bg-white p-5 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2 text-emerald-900 font-extrabold text-sm">
+                                        <span class="text-2xl font-serif font-black italic text-emerald-700">℞</span>
+                                        <span>Official Prescription Medications</span>
+                                    </div>
+                                    <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                                       class="text-emerald-700 hover:text-emerald-800 text-xs font-bold underline flex items-center space-x-1">
+                                        <i class="fa-solid fa-print"></i>
+                                        <span>Print Rx</span>
+                                    </a>
+                                </div>
+                                <div class="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 text-slate-900 font-medium whitespace-pre-line leading-relaxed text-xs">
+{{ $consultation->record->medication_info }}
+                                </div>
+                            </div>
+                        @endif
+                        @if($consultation->record->follow_up_instructions)
+                            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-slate-700">
+                                <strong class="text-slate-900 block mb-0.5">Follow-up Instructions:</strong>
+                                <p class="leading-relaxed">{{ $consultation->record->follow_up_instructions }}</p>
                             </div>
                         @endif
                     </div>

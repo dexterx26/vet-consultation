@@ -84,23 +84,42 @@
                 </a>
             @endif
             @if(auth()->user()->isVet())
-                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all shrink-0">
-                    Record
+                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 shrink-0" title="Issue digital prescription & clinical record">
+                    <i class="fa-solid fa-file-prescription"></i>
+                    <span class="hidden sm:inline">Prescription</span>
+                </a>
+            @endif
+
+            @if($consultation->record && !empty($consultation->record->medication_info))
+                <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                   class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm shrink-0" title="View / Print Official Rx Slip">
+                    <i class="fa-solid fa-print"></i>
+                    <span class="hidden sm:inline">Rx Slip</span>
                 </a>
             @endif
 
             @if(!in_array($consultation->status, ['completed', 'cancelled_by_client', 'cancelled_by_vet', 'declined']))
                 <!-- End Chat Button -->
-                <form id="endChatForm" method="POST" action="{{ route('consultation.chat.end', $consultation) }}" class="m-0 p-0 flex items-center shrink-0" x-show="!isExpired">
-                    @csrf
-                    <button type="submit" onclick="return confirm('End this chat consultation? This will mark the teleconsultation as completed.');"
+                @if(auth()->user()->isVet())
+                    <button type="button" @click="showEndChatModal = true" x-show="!isExpired"
                             class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-2.5 sm:px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm shrink-0"
                             title="End chat consultation (mark completed)">
                         <i class="fa-solid fa-comment-slash text-xs"></i>
                         <span class="hidden xs:inline">End Chat</span>
                         <span class="xs:hidden">End</span>
                     </button>
-                </form>
+                @else
+                    <form id="endChatFormClient" method="POST" action="{{ route('consultation.chat.end', $consultation) }}" class="m-0 p-0 flex items-center shrink-0" x-show="!isExpired">
+                        @csrf
+                        <button type="submit" onclick="return confirm('End this chat consultation? This will mark the teleconsultation as completed.');"
+                                class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-2.5 sm:px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm shrink-0"
+                                title="End chat consultation (mark completed)">
+                            <i class="fa-solid fa-comment-slash text-xs"></i>
+                            <span class="hidden xs:inline">End Chat</span>
+                            <span class="xs:hidden">End</span>
+                        </button>
+                    </form>
+                @endif
             @endif
         </div>
     </div>
@@ -194,16 +213,33 @@
             <i class="fa-solid fa-circle-stop text-rose-500 text-base shrink-0"></i>
             <span x-text="remainingSeconds <= 0 ? ('Consultation time limit reached. All ' + timeLimitMinutes + ' minutes have been consumed. Chat is in read-only mode.') : 'Consultation completed. Chat is in read-only mode.'"></span>
         </div>
-        <div class="flex items-center space-x-2 self-end sm:self-auto">
+        <div class="flex items-center space-x-2 self-end sm:self-auto flex-wrap gap-y-1">
             @if(auth()->user()->isVet())
                 <button type="button" @click="showAddFreeTimeModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors mr-1">
                     + Add Free Time to Reopen
                 </button>
-                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors">Complete Medical Record</a>
+                @if($consultation->record && !empty($consultation->record->medication_info))
+                    <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                       class="bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1 mr-1">
+                        <i class="fa-solid fa-print"></i>
+                        <span>View Rx Slip</span>
+                    </a>
+                @endif
+                <a href="{{ route('vet.records.create', $consultation) }}" class="bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1">
+                    <i class="fa-solid fa-file-prescription"></i>
+                    <span>{{ ($consultation->record && !empty($consultation->record->medication_info)) ? 'Edit Prescription & Record' : 'Create Prescription & Record' }}</span>
+                </a>
             @else
                 <button type="button" @click="showExtensionModal = true" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors mr-1">
                     + Request Extension
                 </button>
+                @if($consultation->record && !empty($consultation->record->medication_info))
+                    <a href="{{ route('consultation.prescription.show', $consultation) }}" target="_blank"
+                       class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1 mr-1">
+                        <i class="fa-solid fa-file-prescription"></i>
+                        <span>View Prescription (Rx)</span>
+                    </a>
+                @endif
                 <a href="{{ route('client.bookings.show', $consultation) }}" class="bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors">View Booking Summary</a>
             @endif
         </div>
@@ -288,6 +324,52 @@
             </div>
         </div>
     </div>
+
+    <!-- Doctor End Chat Confirmation & Prescription Options Modal -->
+    @if(auth()->user()->isVet())
+    <div x-show="showEndChatModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;" x-transition>
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200" @click.outside="showEndChatModal = false">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-base font-bold">
+                        <i class="fa-solid fa-comment-slash"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base">Conclude Chat Consultation</h3>
+                        <p class="text-[11px] text-slate-500">Teleconsultation for {{ $consultation->pet->name }}</p>
+                    </div>
+                </div>
+                <button type="button" @click="showEndChatModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Ending this chat will mark the teleconsultation as completed. What would you like to do next?
+            </p>
+
+            <form id="endChatForm" method="POST" action="{{ route('consultation.chat.end', $consultation) }}" class="space-y-2">
+                @csrf
+                <input type="hidden" name="redirect_to" id="endChatRedirectTo" value="records">
+
+                <button type="button" @click="submitEndChat('records')"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all">
+                    <i class="fa-solid fa-file-prescription text-sm"></i>
+                    <span>End Chat & Create Prescription</span>
+                </button>
+
+                <button type="button" @click="submitEndChat('summary')"
+                        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 px-4 rounded-xl transition-all flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>End Chat Only (Go to Summary)</span>
+                </button>
+
+                <button type="button" @click="showEndChatModal = false"
+                        class="w-full text-slate-400 hover:text-slate-600 text-xs py-2 font-semibold">
+                    Cancel & Continue Chat
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
 
     <!-- Messages Container -->
     <div class="flex-grow bg-white border-x border-slate-200 p-6 overflow-y-auto space-y-4 custom-scrollbar" id="messages-container">
@@ -558,7 +640,8 @@
             isTimerRunning: (isVet && '{{ $consultation->status }}' !== 'completed' && initialRemaining > 0),
             isExpired: (initialRemaining !== undefined && initialRemaining <= 0) || '{{ $consultation->status }}' === 'completed',
 
-            // Extension Modals & State
+            // End Chat & Extension Modals & State
+            showEndChatModal: false,
             showAddFreeTimeModal: false,
             showExtensionModal: false,
             showTimeExtendedBanner: false,
@@ -566,6 +649,13 @@
             selectedMinutes: (extensionPackages && extensionPackages.length > 0) ? extensionPackages[0].minutes : 10,
             pendingExtension: null,
             isExtending: false,
+
+            submitEndChat(redirectTo) {
+                const form = document.getElementById('endChatForm');
+                const input = document.getElementById('endChatRedirectTo');
+                if (input) input.value = redirectTo;
+                if (form) form.submit();
+            },
 
             get selectedCredits() {
                 const pkg = this.extensionPackages.find(p => p.minutes === this.selectedMinutes);
