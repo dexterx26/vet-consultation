@@ -147,9 +147,26 @@ class ConsultationChatUploadTest extends TestCase
         $response->assertJsonValidationErrors(['attachment']);
     }
 
-    public function test_client_cannot_upload_file_exceeding_40mb(): void
+    public function test_client_can_upload_file_up_to_50mb(): void
     {
-        $file = UploadedFile::fake()->create('large.mp4', 45000, 'video/mp4');
+        $file = UploadedFile::fake()->create('large.mp4', 48000, 'video/mp4');
+
+        $response = $this->actingAs($this->client)->postJson(route('consultation.send-message', $this->consultation), [
+            'attachment' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+            'data' => [
+                'attachment_type' => 'video',
+            ],
+        ]);
+    }
+
+    public function test_client_cannot_upload_file_exceeding_50mb(): void
+    {
+        $file = UploadedFile::fake()->create('toolarge.mp4', 55000, 'video/mp4');
 
         $response = $this->actingAs($this->client)->postJson(route('consultation.send-message', $this->consultation), [
             'attachment' => $file,
@@ -249,6 +266,33 @@ class ConsultationChatUploadTest extends TestCase
                 'attachment_type' => 'video',
             ],
         ]);
+    }
+
+    public function test_media_compression_service_compresses_image(): void
+    {
+        $tempImg = tempnam(sys_get_temp_dir(), 'test_img_') . '.jpg';
+        $im = imagecreatetruecolor(2000, 1500);
+        $bg = imagecolorallocate($im, 80, 120, 160);
+        imagefill($im, 0, 0, $bg);
+        imagejpeg($im, $tempImg, 100);
+        imagedestroy($im);
+
+        $initialSize = filesize($tempImg);
+        $result = \App\Services\MediaCompressionService::compress($tempImg, 'image');
+
+        $this->assertTrue($result['success']);
+        $this->assertFileExists($result['path']);
+        $finalSize = filesize($result['path']);
+        $this->assertLessThan($initialSize, $finalSize);
+
+        @unlink($tempImg);
+    }
+
+    public function test_media_compression_service_locates_ffmpeg(): void
+    {
+        $ffmpegPath = \App\Services\MediaCompressionService::getFfmpegPath();
+        $this->assertNotNull($ffmpegPath);
+        $this->assertTrue(file_exists($ffmpegPath) || $ffmpegPath === 'ffmpeg');
     }
 }
 

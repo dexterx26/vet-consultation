@@ -418,7 +418,7 @@
             <!-- File Upload Button -->
             <label class="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors shrink-0 shadow-sm"
                    :class="isExpired ? 'opacity-50 pointer-events-none' : ''"
-                   title="Attach photo, video or document (up to 40MB)">
+                   title="Attach photo, video or document (up to 50MB)">
                 <i class="fa-solid fa-paperclip text-sm"></i>
                 <input type="file" id="chat-file" class="hidden"
                        accept="image/*,video/*,.mp4,.mov,.webm,.avi,.mkv,.ogv,.m4v,.3gp,.pdf,.doc,.docx"
@@ -440,8 +440,8 @@
 
             <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-md shadow-brand-600/30 transition-all flex items-center space-x-1.5 shrink-0"
                     :disabled="isSending || isExpired">
-                <span>Send</span>
-                <i class="fa-solid fa-paper-plane text-xs"></i>
+                <span x-text="isSending ? (attachmentFile ? 'Compressing & Sending...' : 'Sending...') : 'Send'"></span>
+                <i :class="isSending ? 'fa-solid fa-spinner animate-spin text-xs' : 'fa-solid fa-paper-plane text-xs'"></i>
             </button>
         </form>
     </div>
@@ -1021,8 +1021,8 @@
             handleFileChange(e) {
                 if (e.target.files.length > 0) {
                     const file = e.target.files[0];
-                    if (file.size > 40 * 1024 * 1024) {
-                        alert('File is too large. Maximum file upload size is 40MB.');
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert('File is too large. Maximum file upload size is 50MB.');
                         this.clearFile();
                         return;
                     }

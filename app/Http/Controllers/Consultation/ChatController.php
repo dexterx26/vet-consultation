@@ -11,6 +11,8 @@ use App\Events\ConsultationMessageRead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use App\Services\MediaCompressionService;
 
 class ChatController extends Controller
 {
@@ -145,7 +147,7 @@ class ChatController extends Controller
 
         $request->validate([
             'message' => 'nullable|string',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,mp4,mov,webm,avi,mkv,ogv,m4v,3gp|max:40960',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,mp4,mov,webm,avi,mkv,ogv,m4v,3gp|max:51200',
         ]);
 
         if (empty($request->message) && !$request->hasFile('attachment')) {
@@ -172,6 +174,16 @@ class ChatController extends Controller
                 $attachmentType = 'video';
             } else {
                 $attachmentType = 'document';
+            }
+
+            // Compress media (images and videos) to save disk space and optimize web playback
+            if (in_array($attachmentType, ['image', 'video'])) {
+                $fullPath = Storage::disk('public')->path($attachmentPath);
+                $compressionResult = MediaCompressionService::compress($fullPath, $attachmentType);
+                if (!empty($compressionResult['path']) && $compressionResult['path'] !== $fullPath) {
+                    $attachmentPath = 'chat_attachments/' . basename($compressionResult['path']);
+                    $attachmentType = 'video';
+                }
             }
         }
 
