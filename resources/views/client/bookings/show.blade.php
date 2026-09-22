@@ -3,7 +3,17 @@
 @section('title', 'Consultation #' . $consultation->consultation_number)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{
+    showExtensionModal: false,
+    selectedMinutes: {{ ($extensionPackages[0]['minutes'] ?? 10) }},
+    userCredits: {{ $userCredits }},
+    extensionPackages: {{ json_encode($extensionPackages) }},
+    creditsPerMinute: {{ $creditsPerMinute }},
+    get selectedCredits() {
+        const pkg = this.extensionPackages.find(p => p.minutes === this.selectedMinutes);
+        return pkg ? pkg.credits : (this.selectedMinutes * (this.creditsPerMinute || 5));
+    }
+}">
 
     <!-- Status Header Banner -->
     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -33,6 +43,12 @@
         <!-- Action Buttons -->
         <div class="flex items-center space-x-3">
             @if(in_array($consultation->status, ['accepted', 'scheduled', 'in_progress', 'completed']))
+                @if(in_array($consultation->status, ['in_progress', 'completed']) && !$consultation->pendingTimeExtension)
+                    <button type="button" @click="showExtensionModal = true" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-md shadow-amber-600/30 transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-hourglass-start"></i>
+                        <span>+ Add Time</span>
+                    </button>
+                @endif
                 @if($consultation->type === 'video')
                     <a href="{{ route('consultation.video', $consultation) }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md shadow-brand-600/30 transition-all flex items-center space-x-2">
                         <i class="fa-solid fa-video"></i>
@@ -270,6 +286,66 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Client Request Time Extension Modal -->
+    <div x-show="showExtensionModal"
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         style="display: none;">
+        <div @click.away="showExtensionModal = false"
+             class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 text-left">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-hourglass-start"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Request More Time</h3>
+                        <p class="text-[11px] text-slate-500">Requires credits & doctor approval</p>
+                    </div>
+                </div>
+                <button type="button" @click="showExtensionModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Current Balance Banner -->
+            <div class="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 flex items-center justify-between text-xs">
+                <span class="text-slate-600">Your Credit Balance:</span>
+                <span class="font-mono font-bold text-brand-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200" x-text="userCredits + ' credits'"></span>
+            </div>
+
+            <form method="POST" action="{{ route('consultation.request-extension', $consultation) }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="minutes" :value="selectedMinutes">
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Select Extension Package:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <template x-for="pkg in extensionPackages" :key="pkg.minutes">
+                            <button type="button" @click="selectedMinutes = pkg.minutes"
+                                    :class="selectedMinutes === pkg.minutes ? 'border-brand-600 bg-brand-50 text-brand-800 ring-2 ring-brand-500/30' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="p-3 border rounded-xl text-center transition-all">
+                                <span class="block text-sm font-extrabold" x-text="'+' + pkg.minutes + ' mins'"></span>
+                                <span class="text-[10px] text-slate-500 font-semibold" x-text="pkg.credits + ' credits'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="userCredits < selectedCredits" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-xl">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> You need <strong x-text="selectedCredits + ' credits'"></strong> but have <strong x-text="userCredits"></strong> credits.
+                </div>
+
+                <div class="pt-2 flex items-center space-x-2">
+                    <button type="button" @click="showExtensionModal = false" class="w-1/3 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors">Cancel</button>
+                    <button type="submit"
+                            :disabled="userCredits < selectedCredits"
+                            class="w-2/3 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/30 transition-all flex items-center justify-center space-x-1">
+                        <span>Send Request (<span x-text="selectedCredits + ' credits'"></span>)</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
 </div>

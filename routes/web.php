@@ -123,6 +123,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/consultation/{consultation}/chat', [Consultation\ChatController::class, 'showRoom'])->name('consultation.chat');
     Route::get('/consultation/{consultation}/messages', [Consultation\ChatController::class, 'fetchMessages'])->name('consultation.messages');
     Route::post('/consultation/{consultation}/messages', [Consultation\ChatController::class, 'sendMessage'])->name('consultation.send-message');
+    Route::post('/consultation/{consultation}/messages/read', [Consultation\ChatController::class, 'markAsRead'])->name('consultation.messages.read');
+    Route::post('/consultation/{consultation}/chat/end', [Consultation\ChatController::class, 'endChat'])->name('consultation.chat.end');
 
     Route::get('/consultation/{consultation}/video', [Consultation\VideoController::class, 'showRoom'])->name('consultation.video');
     Route::post('/consultation/{consultation}/video/end', [Consultation\VideoController::class, 'endCall'])->name('consultation.video.end');

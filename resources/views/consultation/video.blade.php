@@ -30,26 +30,34 @@
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-2.5 w-full sm:w-auto justify-between sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-700/60 flex-wrap sm:flex-nowrap gap-y-2">
+            <!-- Reverb Live WebSocket Indicator -->
+            <div class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors shadow-sm shrink-0"
+                 :class="isEchoConnected ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-slate-700/40 text-slate-400 border-slate-600'"
+                 :title="isEchoConnected ? 'Connected via Laravel Reverb WebSockets' : 'Connecting to Reverb WebSockets...'">
+                <i class="fa-solid fa-bolt text-[9px]" :class="isEchoConnected ? 'text-amber-300 animate-pulse' : 'text-slate-400'"></i>
+                <span x-text="isEchoConnected ? 'Reverb' : 'Connecting'"></span>
+            </div>
+
             <!-- Doctor Presence / Status Indicator -->
             <div class="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all"
-                 :class="doctorPresent ? (isTimerRunning ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-brand-500/20 text-brand-300 border border-brand-500/30') : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'">
-                <span class="w-2 h-2 rounded-full shrink-0" :class="doctorPresent ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse'"></span>
-                <span class="hidden xs:inline" x-text="doctorPresent ? (remoteConnected ? 'Connected Live' : (isVet ? 'Deducting (Client not in call)' : 'Doctor Present')) : 'Waiting for Doctor (Paused)'"></span>
-                <span class="xs:hidden" x-text="doctorPresent ? 'Live' : 'Paused'"></span>
+                 :class="callTimeExpired ? 'bg-slate-800 text-slate-400 border border-slate-700' : (doctorPresent ? (isTimerRunning ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-brand-500/20 text-brand-300 border border-brand-500/30') : 'bg-amber-500/20 text-amber-400 border border-amber-500/30')">
+                <span class="w-2 h-2 rounded-full shrink-0" :class="callTimeExpired ? 'bg-slate-400' : (doctorPresent ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse')"></span>
+                <span class="hidden xs:inline" x-text="callTimeExpired ? 'Consultation Ended' : (doctorPresent ? (remoteConnected ? 'Connected Live' : (isVet ? 'Deducting (Client not in call)' : 'Doctor Present')) : 'Waiting for Doctor (Paused)')"></span>
+                <span class="xs:hidden" x-text="callTimeExpired ? 'Ended' : (doctorPresent ? 'Live' : 'Paused')"></span>
             </div>
 
             <!-- Countdown Timer vs Time Limit -->
             <div class="px-2.5 sm:px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all shadow-sm shrink-0"
-                 :class="remainingSeconds <= 15 ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-2 ring-rose-500/50 animate-pulse' : (isTimerRunning ? 'bg-slate-900 border-slate-700 text-brand-400' : 'bg-slate-900 border-amber-700/60 text-amber-400')">
-                <i class="fa-solid fa-hourglass-half text-xs shrink-0" :class="remainingSeconds <= 15 ? 'text-rose-400 animate-spin' : (isTimerRunning ? 'text-brand-500' : 'text-amber-500')"></i>
+                 :class="callTimeExpired ? 'bg-slate-900 border-slate-700 text-slate-400' : (remainingSeconds <= 15 ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-2 ring-rose-500/50 animate-pulse' : (isTimerRunning ? 'bg-slate-900 border-slate-700 text-brand-400' : 'bg-slate-900 border-amber-700/60 text-amber-400'))">
+                <i class="fa-solid fa-hourglass-half text-xs shrink-0" :class="callTimeExpired ? 'text-slate-500' : (remainingSeconds <= 15 ? 'text-rose-400 animate-spin' : (isTimerRunning ? 'text-brand-500' : 'text-amber-500'))"></i>
                 <div class="text-left leading-tight">
                     <div class="flex items-baseline space-x-1">
                         <span x-text="formattedRemaining" class="text-xs sm:text-sm font-black">00:00</span>
                         <span class="text-[9px] text-slate-400 font-sans hidden sm:inline" x-text="'/ ' + timeLimitMinutes + 'm'"></span>
                     </div>
                     <span class="text-[8px] sm:text-[9px] uppercase font-sans block font-semibold"
-                          :class="remainingSeconds <= 15 ? 'text-rose-400' : (isTimerRunning ? 'text-emerald-400' : 'text-amber-400')"
-                          x-text="remainingSeconds <= 15 ? 'Ending!' : (isTimerRunning ? 'Deducting' : 'Timer Paused')"></span>
+                          :class="callTimeExpired ? 'text-slate-400' : (remainingSeconds <= 15 ? 'text-rose-400' : (isTimerRunning ? 'text-emerald-400' : 'text-amber-400'))"
+                          x-text="callTimeExpired ? (remainingSeconds <= 0 ? 'Expired' : 'Ended') : (remainingSeconds <= 15 ? 'Ending!' : (isTimerRunning ? 'Deducting' : 'Timer Paused'))"></span>
                 </div>
             </div>
 
@@ -122,6 +130,22 @@
         </button>
     </div>
 
+    <!-- Time Extended Notification Banner -->
+    <div x-show="showTimeExtendedBanner"
+         x-transition
+         class="bg-emerald-600 text-white px-4 py-3 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold shadow-xl border border-emerald-400"
+         style="display: none;">
+        <div class="flex items-center space-x-2.5">
+            <span class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white text-sm">
+                <i class="fa-solid fa-clock"></i>
+            </span>
+            <span x-text="timeExtendedMessage"></span>
+        </div>
+        <button type="button" @click="showTimeExtendedBanner = false" class="text-white hover:text-emerald-200">
+            <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+    </div>
+
     <!-- 15-Second Warning Alert Banner -->
     <div x-show="remainingSeconds <= 15 && remainingSeconds > 0"
          x-transition
@@ -153,17 +177,19 @@
             <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl sm:text-2xl mx-auto shadow-inner">
                 <i class="fa-solid fa-stopwatch"></i>
             </div>
-            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Consultation Time Limit Reached</h3>
-            <p class="text-xs text-slate-500 leading-relaxed">
-                The {{ $timeLimitMinutes }}-minute video consultation period has completed. You are now being redirected to the consultation summary.
+            <h3 class="font-bold text-slate-800 text-base sm:text-lg" x-text="remainingSeconds <= 0 ? 'Consultation Time Limit Reached' : 'Consultation Ended'">Consultation Ended</h3>
+            <p class="text-xs text-slate-500 leading-relaxed" x-text="remainingSeconds <= 0 ? ('The ' + timeLimitMinutes + '-minute video consultation period has completed. You are now being redirected.') : 'The consultation has ended. You are now being redirected to the summary.'">
+                The consultation has ended. You are now being redirected.
             </p>
             @if($isVet)
-                <div class="pt-1">
-                    <button type="button" @click="callTimeExpired = false; showAddFreeTimeModal = true;"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow">
-                        + Add Complimentary Time to Continue
-                    </button>
-                </div>
+                <template x-if="remainingSeconds <= 0">
+                    <div class="pt-1">
+                        <button type="button" @click="callTimeExpired = false; showAddFreeTimeModal = true;"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow">
+                            + Add Complimentary Time to Continue
+                        </button>
+                    </div>
+                </template>
             @endif
             <div class="pt-2">
                 <span class="text-xs text-brand-600 font-bold animate-pulse">Redirecting...</span>
@@ -397,11 +423,11 @@
             ],
             doctorPresent: isVet ? true : false,
             clientPresent: !isVet ? true : false,
-            isTimerRunning: isVet ? true : false,
+            isTimerRunning: (isVet && '{{ $consultation->status }}' !== 'completed' && initialRemaining > 0),
             remoteConnected: false,
             isMuted: false,
             isCameraOff: false,
-            callTimeExpired: false,
+            callTimeExpired: '{{ $consultation->status }}' === 'completed' || initialRemaining <= 0,
             timerInterval: null,
             syncTimer: null,
             localStream: null,
@@ -412,10 +438,13 @@
             fitMode: 'cover',
             pipMinimized: false,
             isFullscreen: false,
+            isEchoConnected: false,
 
             // Extension Modals & State
             showAddFreeTimeModal: false,
             showExtensionModal: false,
+            showTimeExtendedBanner: false,
+            timeExtendedMessage: '',
             selectedMinutes: (extensionPackages && extensionPackages.length > 0) ? extensionPackages[0].minutes : 10,
             pendingExtension: null,
             isExtending: false,
@@ -445,6 +474,13 @@
                 this.checkCameraDevices();
                 this.startLocalStream();
                 this.startLocalTicker();
+                this.initEcho();
+
+                window.addEventListener('beforeunload', () => {
+                    if (window.Echo) {
+                        window.Echo.leave(`consultation.${this.consultationId}`);
+                    }
+                });
 
                 // Periodic time sync & presence heartbeat every 3 seconds
                 this.syncTime();
@@ -458,6 +494,110 @@
                 document.addEventListener('webkitfullscreenchange', () => {
                     this.isFullscreen = !!document.webkitFullscreenElement;
                 });
+            },
+
+            initEcho() {
+                if (window.Echo) {
+                    this.setupEchoListeners();
+                } else {
+                    let attempts = 0;
+                    const interval = setInterval(() => {
+                        attempts++;
+                        if (window.Echo) {
+                            clearInterval(interval);
+                            this.setupEchoListeners();
+                        } else if (attempts >= 10) {
+                            clearInterval(interval);
+                            console.warn('Echo not found after 10 attempts in video room.');
+                        }
+                    }, 300);
+                }
+            },
+
+            setupEchoListeners() {
+                if (!window.Echo) return;
+
+                try {
+                    const channel = window.Echo.private(`consultation.${this.consultationId}`);
+
+                    channel.subscribed(() => {
+                        this.isEchoConnected = true;
+                    });
+
+                    channel.error(() => {
+                        this.isEchoConnected = false;
+                    });
+
+                    channel.listen('.time.updated', (e) => {
+                        if (e.action === 'requested') {
+                            this.pendingExtension = e.extension;
+                        } else if (e.action === 'approved') {
+                            this.pendingExtension = null;
+                            if (e.timer) {
+                                const newMinutes = e.timer.duration_minutes !== undefined 
+                                    ? Number(e.timer.duration_minutes) 
+                                    : (e.timer.total_seconds ? Math.round(Number(e.timer.total_seconds) / 60) : this.timeLimitMinutes);
+
+                                if (newMinutes > this.timeLimitMinutes) {
+                                    const added = newMinutes - this.timeLimitMinutes;
+                                    this.timeLimitMinutes = newMinutes;
+                                    this.timeExtendedMessage = `🎉 Consultation time extended by +${added} min! New limit: ${newMinutes}m`;
+                                    this.showTimeExtendedBanner = true;
+                                    setTimeout(() => { this.showTimeExtendedBanner = false; }, 6000);
+                                } else if (newMinutes) {
+                                    this.timeLimitMinutes = newMinutes;
+                                }
+
+                                if (e.timer.remaining_seconds !== undefined) {
+                                    this.remainingSeconds = e.timer.remaining_seconds;
+                                }
+                                if (e.timer.total_seconds !== undefined) {
+                                    this.totalDurationSeconds = e.timer.total_seconds;
+                                }
+                                this.callTimeExpired = false;
+                                if (this.doctorPresent) {
+                                    this.isTimerRunning = true;
+                                }
+                            }
+                            if (e.client_credits !== null && e.client_credits !== undefined) {
+                                this.userCredits = e.client_credits;
+                                window.dispatchEvent(new CustomEvent('credits-updated', { detail: { credits: e.client_credits } }));
+                            }
+                        } else if (e.action === 'free_time_added') {
+                            if (e.timer) {
+                                const newMinutes = e.timer.duration_minutes !== undefined 
+                                    ? Number(e.timer.duration_minutes) 
+                                    : (e.timer.total_seconds ? Math.round(Number(e.timer.total_seconds) / 60) : this.timeLimitMinutes);
+
+                                if (newMinutes > this.timeLimitMinutes) {
+                                    const added = newMinutes - this.timeLimitMinutes;
+                                    this.timeLimitMinutes = newMinutes;
+                                    this.timeExtendedMessage = `🎉 Dr. added +${added} min complimentary time!`;
+                                    this.showTimeExtendedBanner = true;
+                                    setTimeout(() => { this.showTimeExtendedBanner = false; }, 6000);
+                                } else if (newMinutes) {
+                                    this.timeLimitMinutes = newMinutes;
+                                }
+
+                                if (e.timer.remaining_seconds !== undefined) {
+                                    this.remainingSeconds = e.timer.remaining_seconds;
+                                }
+                                if (e.timer.total_seconds !== undefined) {
+                                    this.totalDurationSeconds = e.timer.total_seconds;
+                                }
+                                this.callTimeExpired = false;
+                                if (this.doctorPresent) {
+                                    this.isTimerRunning = true;
+                                }
+                            }
+                        } else if (e.action === 'declined' || e.action === 'cancelled') {
+                            this.pendingExtension = null;
+                        }
+                    });
+                } catch (err) {
+                    this.isEchoConnected = false;
+                    console.warn('Error subscribing to Echo private channel in video room:', err);
+                }
             },
 
             syncTime() {
@@ -483,16 +623,33 @@
                         this.isTimerRunning = data.timer.is_timer_running;
                         this.pendingExtension = data.timer.pending_extension;
 
+                        // Dynamically synchronize timeLimitMinutes
+                        const newMinutes = data.timer.duration_minutes !== undefined 
+                            ? Number(data.timer.duration_minutes) 
+                            : (data.timer.total_seconds ? Math.round(Number(data.timer.total_seconds) / 60) : this.timeLimitMinutes);
+
+                        if (newMinutes > this.timeLimitMinutes) {
+                            const added = newMinutes - this.timeLimitMinutes;
+                            this.timeLimitMinutes = newMinutes;
+                            this.timeExtendedMessage = `🎉 Consultation time extended by +${added} min! New limit: ${newMinutes}m`;
+                            this.showTimeExtendedBanner = true;
+                            setTimeout(() => { this.showTimeExtendedBanner = false; }, 6000);
+                        } else if (newMinutes && newMinutes !== this.timeLimitMinutes) {
+                            this.timeLimitMinutes = newMinutes;
+                        }
+
                         if (data.timer.client_credits !== undefined) {
                             this.userCredits = data.timer.client_credits;
                             window.dispatchEvent(new CustomEvent('credits-updated', { detail: { credits: data.timer.client_credits } }));
                         }
 
-                        if (this.remainingSeconds > 0 && this.callTimeExpired) {
+                        this.isTimerRunning = data.timer.is_timer_running && data.timer.consultation_status !== 'completed';
+
+                        if (this.remainingSeconds > 0 && this.callTimeExpired && data.timer.consultation_status !== 'completed') {
                             this.callTimeExpired = false;
                         }
 
-                        if (data.timer.is_expired || this.remainingSeconds <= 0) {
+                        if (data.timer.is_expired || data.timer.consultation_status === 'completed' || this.remainingSeconds <= 0) {
                             this.handleTimeExpired();
                         }
                     }
@@ -655,6 +812,7 @@
             handleTimeExpired() {
                 if (this.callTimeExpired) return;
                 this.callTimeExpired = true;
+                this.isTimerRunning = false;
 
                 if (this.timerInterval) clearInterval(this.timerInterval);
                 if (this.syncTimer) clearInterval(this.syncTimer);
@@ -664,11 +822,12 @@
                     this.localStream.getTracks().forEach(t => t.stop());
                 }
 
-                // Auto-submit end call after 1.5 seconds so user sees notification
+                // Redirect after 1.5 seconds so user sees notification
                 setTimeout(() => {
-                    const endForm = document.getElementById('endCallForm');
-                    if (endForm) {
-                        endForm.submit();
+                    if (this.isVet) {
+                        window.location.href = "{{ route('vet.records.create', $consultation) }}";
+                    } else {
+                        window.location.href = "{{ route('client.bookings.show', $consultation) }}";
                     }
                 }, 1500);
             },

@@ -35,36 +35,40 @@ class TimeSyncController extends Controller
             $c = Consultation::where('id', $consultation->id)->lockForUpdate()->first();
             if (!$c) return;
 
+            $isClosed = in_array($c->status, ['completed', 'expired', 'declined', 'cancelled_by_client', 'cancelled_by_vet']);
+
             if ($isVet) {
                 // Doctor entered / active
                 if (!$c->doctor_joined_at) {
                     $c->doctor_joined_at = $now;
                 }
-                if (in_array($c->status, ['accepted', 'scheduled'])) {
+                if (!$isClosed && in_array($c->status, ['accepted', 'scheduled'])) {
                     $c->status = 'in_progress';
                 }
 
-                // Deduct time strictly when doctor is active
-                if ($c->last_deducted_at !== null) {
-                    $secondsSinceLastDeduction = (int) abs($now->diffInSeconds($c->last_deducted_at));
-                    
-                    // Interval bounded between 1 and 10 seconds (standard heartbeat every 3 seconds)
-                    if ($secondsSinceLastDeduction >= 1 && $secondsSinceLastDeduction <= 10) {
-                        $totalSecs = ($c->duration_minutes ?: 15) * 60;
-                        $newConsumed = min($totalSecs, ($c->time_consumed_seconds ?? 0) + $secondsSinceLastDeduction);
-                        $c->time_consumed_seconds = $newConsumed;
-                        $c->last_deducted_at = $now;
+                // Deduct time strictly when consultation is in_progress and active
+                if (!$isClosed && $c->status === 'in_progress') {
+                    if ($c->last_deducted_at !== null) {
+                        $secondsSinceLastDeduction = (int) abs($now->diffInSeconds($c->last_deducted_at));
+                        
+                        // Interval bounded between 1 and 10 seconds (standard heartbeat every 3 seconds)
+                        if ($secondsSinceLastDeduction >= 1 && $secondsSinceLastDeduction <= 10) {
+                            $totalSecs = ($c->duration_minutes ?: 15) * 60;
+                            $newConsumed = min($totalSecs, ($c->time_consumed_seconds ?? 0) + $secondsSinceLastDeduction);
+                            $c->time_consumed_seconds = $newConsumed;
+                            $c->last_deducted_at = $now;
 
-                        if ($newConsumed >= $totalSecs && $c->status === 'in_progress') {
-                            $c->status = 'completed';
+                            if ($newConsumed >= $totalSecs) {
+                                $c->status = 'completed';
+                            }
+                        } elseif ($secondsSinceLastDeduction > 10) {
+                            // Re-entered after disconnect / being offline, resume interval without counting gap
+                            $c->last_deducted_at = $now;
                         }
-                    } elseif ($secondsSinceLastDeduction > 10) {
-                        // Re-entered after disconnect / being offline, resume interval without counting gap
+                    } else {
+                        // First heartbeat of active doctor session
                         $c->last_deducted_at = $now;
                     }
-                } else {
-                    // First heartbeat of active doctor session
-                    $c->last_deducted_at = $now;
                 }
 
                 $c->doctor_last_seen_at = $now;
@@ -92,6 +96,7 @@ class TimeSyncController extends Controller
 
         return [
             'total_seconds' => $consultation->total_duration_seconds,
+            'duration_minutes' => (int) ($consultation->duration_minutes ?: 15),
             'consumed_seconds' => $consultation->time_consumed_seconds ?? 0,
             'remaining_seconds' => $consultation->remaining_seconds,
             'formatted_remaining' => $consultation->formatted_remaining_time,

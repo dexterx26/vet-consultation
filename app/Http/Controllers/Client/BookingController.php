@@ -209,8 +209,11 @@ class BookingController extends Controller
 
         $consultation->load(['vet', 'vet.vetProfile', 'pet', 'pets.animalType', 'pets.breed', 'messages.sender', 'record', 'call', 'review']);
         $bookingCreditsCost = $consultation->credits_cost ?: (int) SystemSetting::get('booking_credits_cost', 300);
+        $creditsPerMinute = (int) SystemSetting::get('time_extension_credits_per_minute', 5);
+        $userCredits = Auth::user()->credits ?? 0;
+        $extensionPackages = \App\Models\ConsultationTimeExtension::getPackages();
 
-        return view('client.bookings.show', compact('consultation', 'bookingCreditsCost'));
+        return view('client.bookings.show', compact('consultation', 'bookingCreditsCost', 'creditsPerMinute', 'userCredits', 'extensionPackages'));
     }
 
     public function acceptReschedule(Consultation $consultation)

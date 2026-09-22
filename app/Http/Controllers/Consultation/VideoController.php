@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Consultation;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\ConsultationCall;
+use App\Models\ConsultationMessage;
+use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -31,6 +33,13 @@ class VideoController extends Controller
                 'status' => 'waiting',
             ]
         );
+
+        if ($call->status === 'ended' && $consultation->status === 'in_progress') {
+            $call->update([
+                'status' => 'waiting',
+                'ended_at' => null,
+            ]);
+        }
 
         if ($consultation->status === 'accepted') {
             $consultation->update(['status' => 'in_progress']);
@@ -78,15 +87,44 @@ class VideoController extends Controller
             abort(403);
         }
 
+        $actualDuration = $consultation->time_consumed_seconds ?? 0;
         if ($call = $consultation->call) {
             $call->update([
                 'status' => 'ended',
                 'ended_at' => now(),
-                'duration_seconds' => $consultation->time_consumed_seconds ?? 0,
+                'duration_seconds' => $actualDuration,
             ]);
         }
 
-        if ($user->isVet()) {
+        $isVet = ($user->id === $consultation->vet_id || $user->isVet() || $user->isAdmin());
+        if ($isVet) {
+            $consultation->time_consumed_seconds = $consultation->total_duration_seconds;
+        }
+
+        if (!in_array($consultation->status, ['completed', 'cancelled_by_client', 'cancelled_by_vet', 'declined'])) {
+            $consultation->status = 'completed';
+        }
+        $consultation->save();
+
+        $senderName = $isVet ? "Dr. {$user->name}" : $user->name;
+
+        // Post system message
+        ConsultationMessage::create([
+            'consultation_id' => $consultation->id,
+            'sender_id' => $user->id,
+            'message' => "🛑 Video consultation ended by {$senderName}. Teleconsultation is now completed.",
+        ]);
+
+        $otherUserId = ($user->id === $consultation->vet_id) ? $consultation->client_id : $consultation->vet_id;
+        AppNotification::create([
+            'user_id' => $otherUserId,
+            'title' => 'Consultation Ended',
+            'message' => "{$senderName} has ended the video consultation.",
+            'type' => 'info',
+            'is_read' => false,
+        ]);
+
+        if ($isVet) {
             return redirect()->route('vet.records.create', $consultation)->with('info', 'Video call ended. Please fill out the consultation clinical record.');
         }
 

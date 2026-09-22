@@ -439,13 +439,15 @@ class ConsultationTimeExtensionTest extends TestCase
             'client_credits' => 450,
         ]);
 
-        // 4. Consultation heartbeat sync also returns updated client_credits (450)
+        // 4. Consultation heartbeat sync also returns updated client_credits (450) and duration_minutes (25)
         $syncResponse = $this->actingAs($client)->postJson("/consultation/{$consultation->id}/sync-time");
         $syncResponse->assertStatus(200);
         $syncResponse->assertJson([
             'status' => 'success',
             'timer' => [
                 'client_credits' => 450,
+                'duration_minutes' => 25,
+                'total_seconds' => 1500,
             ],
         ]);
 

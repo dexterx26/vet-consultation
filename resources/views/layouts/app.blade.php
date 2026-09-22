@@ -50,6 +50,9 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <!-- Scripts / WebSockets (Echo & Reverb) -->
+    @vite(['resources/js/app.js'])
+
     <style>
         [x-cloak] { display: none !important; }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }

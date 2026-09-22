@@ -8,9 +8,12 @@ use App\Models\ConsultationTimeExtension;
 use App\Models\ConsultationMessage;
 use App\Models\AppNotification;
 use App\Models\SystemSetting;
+use App\Events\ConsultationTimeUpdated;
+use App\Events\ConsultationMessageSent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TimeExtensionController extends Controller
 {
@@ -30,12 +33,25 @@ class TimeExtensionController extends Controller
 
         $minutes = (int) $request->minutes;
 
-        DB::transaction(function () use ($consultation, $user, $minutes) {
+        $sysMsg = null;
+        DB::transaction(function () use ($consultation, $user, $minutes, &$sysMsg) {
             $c = Consultation::where('id', $consultation->id)->lockForUpdate()->first();
 
+            $wasClosed = in_array($c->status, ['completed', 'expired']);
+            $oldTotalSeconds = ($c->duration_minutes ?: 15) * 60;
+
             $c->duration_minutes = ($c->duration_minutes ?: 15) + $minutes;
-            if (in_array($c->status, ['completed', 'expired'])) {
+            if ($wasClosed) {
                 $c->status = 'in_progress';
+                $c->time_consumed_seconds = $oldTotalSeconds;
+                $c->last_deducted_at = now();
+
+                if ($c->call && $c->call->status === 'ended') {
+                    $c->call->update([
+                        'status' => 'waiting',
+                        'ended_at' => null,
+                    ]);
+                }
             }
             $c->save();
 
@@ -50,7 +66,7 @@ class TimeExtensionController extends Controller
             ]);
 
             // Add system message to live chat
-            ConsultationMessage::create([
+            $sysMsg = ConsultationMessage::create([
                 'consultation_id' => $c->id,
                 'sender_id' => $user->id,
                 'message' => "🎉 Dr. {$user->name} added {$minutes} minutes of complimentary consultation time (Free of charge).",
@@ -66,6 +82,27 @@ class TimeExtensionController extends Controller
         });
 
         $consultation->refresh();
+
+        try {
+            if ($sysMsg) {
+                $sysMsg->load('sender');
+                broadcast(new ConsultationMessageSent($sysMsg))->toOthers();
+            }
+            broadcast(new ConsultationTimeUpdated(
+                $consultation->id,
+                'free_time_added',
+                null,
+                [
+                    'duration_minutes' => $consultation->duration_minutes,
+                    'remaining_seconds' => $consultation->remaining_seconds,
+                    'formatted_remaining' => $consultation->formatted_remaining_time,
+                    'total_seconds' => $consultation->total_duration_seconds,
+                ],
+                (int) ($consultation->client->credits ?? 0)
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Reverb broadcast doctorAddTime failed: ' . $e->getMessage());
+        }
 
         if (!$request->wantsJson() && !$request->ajax()) {
             return back()->with('success', "Successfully added {$minutes} free minutes to the consultation.");
@@ -129,7 +166,7 @@ class TimeExtensionController extends Controller
         ]);
 
         // Add notice to chat
-        ConsultationMessage::create([
+        $sysMsg = ConsultationMessage::create([
             'consultation_id' => $consultation->id,
             'sender_id' => $user->id,
             'message' => "⏱️ Client {$user->name} requested a +{$minutes} minute extension ({$cost} credits) awaiting veterinarian approval.",
@@ -142,6 +179,27 @@ class TimeExtensionController extends Controller
             'type' => 'info',
             'is_read' => false,
         ]);
+
+        try {
+            if ($sysMsg) {
+                $sysMsg->load('sender');
+                broadcast(new ConsultationMessageSent($sysMsg))->toOthers();
+            }
+            broadcast(new ConsultationTimeUpdated(
+                $consultation->id,
+                'requested',
+                [
+                    'id' => $extension->id,
+                    'minutes' => $extension->minutes,
+                    'credits_cost' => $extension->credits_cost,
+                    'status' => $extension->status,
+                ],
+                null,
+                (int) ($client->credits ?? 0)
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Reverb broadcast requestExtension failed: ' . $e->getMessage());
+        }
 
         if (!$request->wantsJson() && !$request->ajax()) {
             return back()->with('success', "Extension request for +{$minutes} minutes submitted. Awaiting veterinarian approval.");
@@ -187,7 +245,8 @@ class TimeExtensionController extends Controller
             return response()->json(['error' => $msg], 422);
         }
 
-        DB::transaction(function () use ($consultation, $extension, $client, $user) {
+        $sysMsg = null;
+        DB::transaction(function () use ($consultation, $extension, $client, $user, &$sysMsg) {
             $c = Consultation::where('id', $consultation->id)->lockForUpdate()->first();
 
             // Deduct credits from client
@@ -197,11 +256,26 @@ class TimeExtensionController extends Controller
                 "Time extension (+{$extension->minutes} mins) for #{$c->consultation_number}"
             );
 
+            $wasClosed = in_array($c->status, ['completed', 'expired']);
+            $oldTotalSeconds = ($c->duration_minutes ?: 15) * 60;
+
             // Extend consultation duration
             $c->duration_minutes = ($c->duration_minutes ?: 15) + $extension->minutes;
             $c->credits_deducted = ($c->credits_deducted ?: 0) + $extension->credits_cost;
-            if (in_array($c->status, ['completed', 'expired'])) {
+
+            if ($wasClosed) {
                 $c->status = 'in_progress';
+                // When reopening an ended/completed consultation, ensure time consumed starts from old total duration,
+                // so remaining time starts fresh from 0 + selected additional minutes ($extension->minutes * 60)
+                $c->time_consumed_seconds = $oldTotalSeconds;
+                $c->last_deducted_at = now();
+
+                if ($c->call && $c->call->status === 'ended') {
+                    $c->call->update([
+                        'status' => 'waiting',
+                        'ended_at' => null,
+                    ]);
+                }
             }
             $c->save();
 
@@ -213,7 +287,7 @@ class TimeExtensionController extends Controller
             ]);
 
             // Add system message to live chat
-            ConsultationMessage::create([
+            $sysMsg = ConsultationMessage::create([
                 'consultation_id' => $c->id,
                 'sender_id' => $user->id,
                 'message' => "✅ Dr. {$user->name} approved the +{$extension->minutes} minute extension ({$extension->credits_cost} credits deducted).",
@@ -229,6 +303,28 @@ class TimeExtensionController extends Controller
         });
 
         $consultation->refresh();
+        $updatedCredits = (int) ($client->fresh()->credits ?? 0);
+
+        try {
+            if ($sysMsg) {
+                $sysMsg->load('sender');
+                broadcast(new ConsultationMessageSent($sysMsg))->toOthers();
+            }
+            broadcast(new ConsultationTimeUpdated(
+                $consultation->id,
+                'approved',
+                null,
+                [
+                    'duration_minutes' => $consultation->duration_minutes,
+                    'remaining_seconds' => $consultation->remaining_seconds,
+                    'formatted_remaining' => $consultation->formatted_remaining_time,
+                    'total_seconds' => $consultation->total_duration_seconds,
+                ],
+                $updatedCredits
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Reverb broadcast approveExtension failed: ' . $e->getMessage());
+        }
 
         if (!$request->wantsJson() && !$request->ajax()) {
             return back()->with('success', "Approved +{$extension->minutes} minutes extension. Client credits deducted.");
@@ -270,7 +366,7 @@ class TimeExtensionController extends Controller
             'decline_reason' => $request->reason,
         ]);
 
-        ConsultationMessage::create([
+        $sysMsg = ConsultationMessage::create([
             'consultation_id' => $consultation->id,
             'sender_id' => $user->id,
             'message' => "❌ Dr. {$user->name} declined the time extension request.",
@@ -283,6 +379,22 @@ class TimeExtensionController extends Controller
             'type' => 'warning',
             'is_read' => false,
         ]);
+
+        try {
+            if ($sysMsg) {
+                $sysMsg->load('sender');
+                broadcast(new ConsultationMessageSent($sysMsg))->toOthers();
+            }
+            broadcast(new ConsultationTimeUpdated(
+                $consultation->id,
+                'declined',
+                null,
+                null,
+                null
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Reverb broadcast declineExtension failed: ' . $e->getMessage());
+        }
 
         if (!$request->wantsJson() && !$request->ajax()) {
             return back()->with('success', 'Time extension request declined. No credits were deducted.');
@@ -313,6 +425,18 @@ class TimeExtensionController extends Controller
         }
 
         $extension->update(['status' => 'cancelled']);
+
+        try {
+            broadcast(new ConsultationTimeUpdated(
+                $consultation->id,
+                'cancelled',
+                null,
+                null,
+                null
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Reverb broadcast cancelExtension failed: ' . $e->getMessage());
+        }
 
         if (!$request->wantsJson() && !$request->ajax()) {
             return back()->with('success', 'Extension request cancelled.');
