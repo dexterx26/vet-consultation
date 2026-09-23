@@ -62,7 +62,7 @@
                 </div>
 
                 <div class="sm:text-right space-y-1 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-sm print:border print:shadow-none">
-                    <h3 class="font-extrabold text-slate-900 text-base">Dr. {{ $consultation->vet->name }}</h3>
+                    <h3 class="font-extrabold text-slate-900 text-base">{{ $consultation->vet->name }}</h3>
                     <p class="text-xs text-emerald-700 font-bold">Licensed Veterinarian</p>
                     <div class="text-[11px] text-slate-600 space-y-0.5 font-mono pt-1">
                         <div>PRC License: <strong class="text-slate-900">{{ $consultation->vet->vetProfile->license_number ?? 'PRC-VET' }}</strong></div>
@@ -163,7 +163,7 @@
                 <div class="text-center sm:text-right w-full sm:w-auto">
                     <div class="inline-block text-center border-b-2 border-slate-900 pb-1 w-60">
                         <div class="font-serif italic font-bold text-lg text-slate-800 pb-0.5">
-                            Dr. {{ $consultation->vet->name }}
+                            {{ $consultation->vet->name }}
                         </div>
                     </div>
                     <div class="text-xs font-bold text-slate-800 mt-1">Attending Licensed Veterinarian</div>

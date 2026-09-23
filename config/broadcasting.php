@@ -37,13 +37,13 @@ return [
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
                 'host' => env('REVERB_HOST', '127.0.0.1'),
-                'port' => env('REVERB_PORT', 8080),
+                'port' => env('REVERB_PORT', 8001),
                 'scheme' => env('REVERB_SCHEME', 'http'),
                 'useTLS' => env('REVERB_SCHEME', 'http') === 'https',
             ],
             'client_options' => [
-                'connect_timeout' => 0.15,
-                'timeout' => 0.35,
+                'connect_timeout' => env('REVERB_CONNECT_TIMEOUT', 3.0),
+                'timeout' => env('REVERB_TIMEOUT', 5.0),
             ],
         ],
 

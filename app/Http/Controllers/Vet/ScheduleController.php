@@ -27,6 +27,10 @@ class ScheduleController extends Controller
             'additional_pet_duration' => 'required|integer|min:1|max:120',
             'clinic_name' => 'nullable|string|max:255',
             'clinic_address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'expertise' => 'required|string',
             'bio' => 'nullable|string',
             'languages' => 'nullable|string',
@@ -36,8 +40,26 @@ class ScheduleController extends Controller
         if ($profile) {
             $profile->update($request->only([
                 'consultation_fee', 'additional_pet_fee', 'additional_pet_duration',
-                'clinic_name', 'clinic_address', 'expertise', 'bio', 'languages'
+                'clinic_name', 'clinic_address', 'city', 'province',
+                'latitude', 'longitude', 'expertise', 'bio', 'languages'
             ]));
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile & consultation settings updated successfully.',
+                'profile' => [
+                    'consultation_fee' => $profile->consultation_fee,
+                    'additional_pet_fee' => $profile->additional_pet_fee,
+                    'additional_pet_duration' => $profile->additional_pet_duration,
+                    'clinic_name' => $profile->clinic_name,
+                    'clinic_address' => $profile->clinic_address,
+                    'city' => $profile->city,
+                    'province' => $profile->province,
+                    'has_coordinates' => ($profile->latitude && $profile->longitude),
+                ],
+            ]);
         }
 
         return back()->with('success', 'Profile & consultation settings updated successfully.');

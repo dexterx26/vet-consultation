@@ -8,8 +8,10 @@ use App\Models\User;
 use App\Models\Pet;
 use App\Models\AppNotification;
 use App\Models\SystemSetting;
+use App\Events\NewConsultationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
@@ -198,6 +200,13 @@ class BookingController extends Controller
             'is_read' => false,
         ]);
 
+        // Broadcast real-time event to Veterinarian via Laravel Reverb
+        try {
+            broadcast(new NewConsultationRequest($consultation));
+        } catch (\Exception $e) {
+            Log::warning('Reverb broadcast NewConsultationRequest failed: ' . $e->getMessage());
+        }
+
         return redirect()->route('client.bookings.show', $consultation)->with('success', 'Consultation request submitted! Slot reserved. Awaiting veterinarian confirmation.');
     }
 
@@ -207,6 +216,10 @@ class BookingController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        if (request()->expectsJson() || request()->ajax()) {
+            return $this->status($consultation);
+        }
+
         $consultation->load(['vet', 'vet.vetProfile', 'pet', 'pets.animalType', 'pets.breed', 'messages.sender', 'record', 'call', 'review']);
         $bookingCreditsCost = $consultation->credits_cost ?: (int) SystemSetting::get('booking_credits_cost', 300);
         $creditsPerMinute = (int) SystemSetting::get('time_extension_credits_per_minute', 5);
@@ -214,6 +227,29 @@ class BookingController extends Controller
         $extensionPackages = \App\Models\ConsultationTimeExtension::getPackages();
 
         return view('client.bookings.show', compact('consultation', 'bookingCreditsCost', 'creditsPerMinute', 'userCredits', 'extensionPackages'));
+    }
+
+    public function status(Consultation $consultation)
+    {
+        if ($consultation->client_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $consultation->load(['vet', 'vet.vetProfile', 'pet', 'pets.animalType']);
+
+        return response()->json([
+            'id' => $consultation->id,
+            'consultation_number' => $consultation->consultation_number,
+            'status' => $consultation->status,
+            'status_label' => ucfirst(str_replace('_', ' ', $consultation->status)),
+            'decline_reason' => $consultation->decline_reason,
+            'vet_name' => $consultation->vet ? $consultation->vet->name : 'Doctor',
+            'pet_names' => $consultation->all_pets->pluck('name')->join(', ') ?: ($consultation->pet->name ?? 'Patient'),
+            'type' => $consultation->type,
+            'credits_cost' => $consultation->credits_cost,
+            'scheduled_at' => $consultation->scheduled_at ? $consultation->scheduled_at->format('F d, Y @ g:i A') : '',
+            'updated_at' => $consultation->updated_at->toISOString(),
+        ]);
     }
 
     public function acceptReschedule(Consultation $consultation)
@@ -310,6 +346,13 @@ class BookingController extends Controller
             'type' => 'warning',
             'is_read' => false,
         ]);
+
+        // Real-Time Reverb broadcast to Vet Dashboard to immediately remove pending request
+        try {
+            broadcast(new \App\Events\ConsultationCancelled($consultation));
+        } catch (\Exception $e) {
+            Log::warning('Reverb broadcast ConsultationCancelled failed: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Consultation cancelled. Any deducted credits have been refunded.');
     }

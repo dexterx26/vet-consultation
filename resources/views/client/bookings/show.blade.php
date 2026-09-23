@@ -3,31 +3,75 @@
 @section('title', 'Consultation #' . $consultation->consultation_number)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{
-    showExtensionModal: false,
-    selectedMinutes: {{ ($extensionPackages[0]['minutes'] ?? 10) }},
-    userCredits: {{ $userCredits }},
-    extensionPackages: {{ json_encode($extensionPackages) }},
-    creditsPerMinute: {{ $creditsPerMinute }},
-    get selectedCredits() {
-        const pkg = this.extensionPackages.find(p => p.minutes === this.selectedMinutes);
-        return pkg ? pkg.credits : (this.selectedMinutes * (this.creditsPerMinute || 5));
-    }
-}">
+<div class="max-w-4xl mx-auto space-y-6" x-data="clientBookingShowComponent()">
+
+    <!-- Real-Time Floating Toast Alert when Doctor Declines -->
+    <div x-show="isDeclinedToast" 
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="-translate-y-4 opacity-0 scale-95"
+         x-transition:enter-end="translate-y-0 opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="translate-y-0 opacity-100 scale-100"
+         x-transition:leave-end="-translate-y-4 opacity-0 scale-95"
+         class="fixed top-6 right-6 z-50 max-w-md w-full bg-slate-900/95 backdrop-blur-md text-white rounded-3xl p-5 shadow-2xl border border-rose-500/50 ring-1 ring-rose-500/30"
+         x-cloak>
+        <div class="flex items-start space-x-3.5">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-lg shrink-0 shadow-lg shadow-rose-500/30 animate-pulse">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-500/40">Real-Time Update</span>
+                    <button @click="isDeclinedToast = false" class="text-slate-400 hover:text-white transition-colors text-xs p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <h3 class="text-sm font-extrabold text-white mt-1">Consultation Request Declined</h3>
+                <p class="text-xs text-slate-300 mt-0.5">
+                    Dr. <strong class="text-white" x-text="vetName"></strong> was unable to accept your booking request.
+                </p>
+                <div class="text-[11px] text-rose-200 italic mt-1 bg-rose-950/40 p-2.5 rounded-xl border border-rose-500/30" 
+                     x-show="declineReason">
+                    <span x-text="'&quot;' + declineReason + '&quot;'"></span>
+                </div>
+                <div class="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                    <span class="text-emerald-400 text-[11px]"><i class="fa-solid fa-check mr-1"></i> No credits were deducted</span>
+                    <button @click="isDeclinedToast = false" class="text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Status Header Banner -->
     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
             <div class="flex items-center space-x-3">
-                <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full 
-                    @if($consultation->status === 'accepted') bg-emerald-100 text-emerald-800
-                    @elseif($consultation->status === 'pending') bg-amber-100 text-amber-800
-                    @elseif($consultation->status === 'reschedule_suggested') bg-indigo-100 text-indigo-800
-                    @elseif($consultation->status === 'completed') bg-slate-100 text-slate-800
-                    @else bg-rose-100 text-rose-800 @endif">
-                    {{ ucfirst(str_replace('_', ' ', $consultation->status)) }}
+                <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full transition-all flex items-center space-x-1.5" 
+                    :class="{
+                        'bg-emerald-100 text-emerald-800': status === 'accepted',
+                        'bg-amber-100 text-amber-800': status === 'pending',
+                        'bg-indigo-100 text-indigo-800': status === 'reschedule_suggested',
+                        'bg-slate-100 text-slate-800': status === 'completed',
+                        'bg-rose-100 text-rose-800': status === 'declined' || status.includes('cancelled')
+                    }">
+                    <span class="w-1.5 h-1.5 rounded-full"
+                          :class="{
+                              'bg-emerald-500': status === 'accepted',
+                              'bg-amber-500 animate-pulse': status === 'pending',
+                              'bg-indigo-500': status === 'reschedule_suggested',
+                              'bg-slate-500': status === 'completed',
+                              'bg-rose-500': status === 'declined' || status.includes('cancelled')
+                          }"></span>
+                    <span x-text="status.replace(/_/g, ' ')">
+                        {{ ucfirst(str_replace('_', ' ', $consultation->status)) }}
+                    </span>
                 </span>
                 <span class="text-xs text-slate-400 font-mono">#{{ $consultation->consultation_number }}</span>
+                <span x-show="isFetchingStatus" class="text-[10px] text-brand-600 animate-pulse font-semibold" x-cloak>
+                    <i class="fa-solid fa-rotate fa-spin mr-0.5"></i> Syncing...
+                </span>
             </div>
             <h1 class="text-2xl font-bold text-slate-800 mt-2">Consultation with Dr. {{ $consultation->vet->name }}</h1>
             <p class="text-xs text-slate-500 mt-1">
@@ -42,33 +86,98 @@
 
         <!-- Action Buttons -->
         <div class="flex items-center space-x-3">
-            @if(in_array($consultation->status, ['accepted', 'scheduled', 'in_progress', 'completed']))
-                @if(in_array($consultation->status, ['in_progress', 'completed']) && !$consultation->pendingTimeExtension)
-                    <button type="button" @click="showExtensionModal = true" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-md shadow-amber-600/30 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-hourglass-start"></i>
-                        <span>+ Add Time</span>
-                    </button>
-                @endif
-                @if($consultation->type === 'video')
-                    <a href="{{ route('consultation.video', $consultation) }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md shadow-brand-600/30 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-video"></i>
-                        <span>Enter Video Room</span>
+            <template x-if="['accepted', 'scheduled', 'in_progress', 'completed'].includes(status)">
+                <div class="flex items-center space-x-3">
+                    @if(!$consultation->pendingTimeExtension)
+                        <button type="button" x-show="['in_progress', 'completed'].includes(status)" @click="showExtensionModal = true" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-md shadow-amber-600/30 transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-hourglass-start"></i>
+                            <span>+ Add Time</span>
+                        </button>
+                    @endif
+                    @if($consultation->type === 'video')
+                        <a href="{{ route('consultation.video', $consultation) }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md shadow-brand-600/30 transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-video"></i>
+                            <span>Enter Video Room</span>
+                        </a>
+                    @endif
+                    <a href="{{ route('consultation.chat', $consultation) }}" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Open Chat Room</span>
                     </a>
-                @endif
-                <a href="{{ route('consultation.chat', $consultation) }}" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all flex items-center space-x-2">
-                    <i class="fa-solid fa-comments"></i>
-                    <span>Open Chat Room</span>
-                </a>
-            @endif
+                </div>
+            </template>
 
-            @if($consultation->status === 'pending')
+            <template x-if="status === 'pending'">
                 <form method="POST" action="{{ route('client.bookings.cancel', $consultation) }}" onsubmit="return confirm('Cancel this consultation request?');">
                     @csrf
                     <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs px-4 py-2.5 rounded-xl border border-rose-200 transition-all">
                         Cancel Request
                     </button>
                 </form>
-            @endif
+            </template>
+
+            <template x-if="status === 'declined'">
+                <div class="flex items-center space-x-2">
+                    <a href="{{ route('client.vets.search') }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        <span>Book Another Vet</span>
+                    </a>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Real-Time Doctor Declined Consultation Banner -->
+    <div x-show="status === 'declined'" 
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="-translate-y-3 opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         class="bg-gradient-to-r from-rose-50 via-rose-50/60 to-white border-2 border-rose-300 rounded-3xl p-6 sm:p-7 shadow-sm space-y-4"
+         @if($consultation->status !== 'declined') x-cloak @endif>
+        <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-rose-500/20">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-[11px] uppercase font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                        Consultation Request Declined
+                    </span>
+                    <span class="text-xs text-rose-700 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-bolt text-rose-500"></i>
+                        <span>Live Updated via Reverb</span>
+                    </span>
+                </div>
+                <h2 class="text-lg font-extrabold text-slate-900 mt-1 font-heading">
+                    Dr. <span x-text="vetName">{{ $consultation->vet->name }}</span> was unable to accept this consultation request
+                </h2>
+                
+                <div class="mt-3 p-4 bg-white rounded-2xl border border-rose-200/90 shadow-sm text-xs space-y-1">
+                    <strong class="text-rose-900 font-bold block flex items-center gap-1.5">
+                        <i class="fa-solid fa-comment-dots text-rose-500"></i>
+                        <span>Doctor's Reason / Explanation:</span>
+                    </strong>
+                    <p class="italic text-slate-700 bg-rose-50/40 p-2.5 rounded-xl border border-rose-100 font-medium" 
+                       x-text="declineReason || 'No specific explanation was provided.'">
+                        {{ $consultation->decline_reason ?: 'No specific explanation was provided.' }}
+                    </p>
+                </div>
+
+                <div class="mt-3 flex items-center space-x-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
+                    <i class="fa-solid fa-circle-check text-emerald-600 text-sm shrink-0"></i>
+                    <span><strong>No credits deducted:</strong> Your balance remains intact. You can select another schedule or book another veterinarian.</span>
+                </div>
+
+                <div class="pt-4 flex flex-wrap items-center gap-3">
+                    <a href="{{ route('client.vets.search') }}" class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-brand-600/20 transition-all">
+                        <i class="fa-solid fa-user-doctor"></i>
+                        <span>Find Another Veterinarian</span>
+                    </a>
+                    <a href="{{ route('client.bookings.index') }}" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors">
+                        <span>View My Consultations</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -389,4 +498,141 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+function clientBookingShowComponent() {
+    return {
+        consultationId: {{ $consultation->id }},
+        status: '{{ $consultation->status }}',
+        declineReason: @json($consultation->decline_reason ?? ''),
+        vetName: @json($consultation->vet ? $consultation->vet->name : 'Doctor'),
+        isDeclinedToast: false,
+        isFetchingStatus: false,
+        statusCheckUrl: '{{ route("client.bookings.status", $consultation) }}',
+
+        showExtensionModal: false,
+        selectedMinutes: {{ ($extensionPackages[0]['minutes'] ?? 10) }},
+        userCredits: {{ $userCredits }},
+        extensionPackages: {{ json_encode($extensionPackages) }},
+        creditsPerMinute: {{ $creditsPerMinute }},
+
+        get selectedCredits() {
+            const pkg = this.extensionPackages.find(p => p.minutes === this.selectedMinutes);
+            return pkg ? pkg.credits : (this.selectedMinutes * (this.creditsPerMinute || 5));
+        },
+
+        init() {
+            this.setupEcho();
+
+            // Dual-layer fallback: Poll every 5s while pending + on tab focus
+            if (this.status === 'pending') {
+                const interval = setInterval(async () => {
+                    if (this.status !== 'pending') {
+                        clearInterval(interval);
+                        return;
+                    }
+                    await this.fetchStatus();
+                }, 5000);
+
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && this.status === 'pending') {
+                        this.fetchStatus();
+                    }
+                });
+            }
+        },
+
+        setupEcho() {
+            if (!window.Echo) {
+                setTimeout(() => this.setupEcho(), 350);
+                return;
+            }
+
+            try {
+                // Subscribe to private-consultation.{id}
+                const channel = window.Echo.private(`consultation.${this.consultationId}`);
+                channel.listen('.consultation.declined', (event) => this.handleDeclined(event))
+                       .listen('consultation.declined', (event) => this.handleDeclined(event))
+                       .listen('.ConsultationDeclined', (event) => this.handleDeclined(event))
+                       .listen('ConsultationDeclined', (event) => this.handleDeclined(event));
+
+                // Also subscribe to client's private user channel as secondary channel
+                const userChannel = window.Echo.private(`App.Models.User.{{ Auth::id() }}`);
+                userChannel.listen('.consultation.declined', (event) => {
+                    if (event && (event.consultation_id == this.consultationId || event.id == this.consultationId)) {
+                        this.handleDeclined(event);
+                    }
+                }).listen('consultation.declined', (event) => {
+                    if (event && (event.consultation_id == this.consultationId || event.id == this.consultationId)) {
+                        this.handleDeclined(event);
+                    }
+                });
+            } catch (err) {
+                console.warn('Echo consultation channel subscription error:', err);
+            }
+        },
+
+        async handleDeclined(event) {
+            console.log('Consultation declined event received via Reverb:', event);
+            if (event && event.decline_reason) {
+                this.declineReason = event.decline_reason;
+            }
+            await this.fetchStatus();
+            this.isDeclinedToast = true;
+            this.playNotificationAlert();
+        },
+
+        async fetchStatus() {
+            this.isFetchingStatus = true;
+            try {
+                const response = await fetch(this.statusCheckUrl, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status !== this.status) {
+                        this.status = data.status;
+                        if (data.decline_reason) {
+                            this.declineReason = data.decline_reason;
+                        }
+                        if (data.status === 'declined') {
+                            this.isDeclinedToast = true;
+                            this.playNotificationAlert();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Fetch status error:', e);
+            } finally {
+                this.isFetchingStatus = false;
+            }
+        },
+
+        playNotificationAlert() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(330, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } catch (e) {}
+        }
+    };
+}
+</script>
+@endpush
 @endsection

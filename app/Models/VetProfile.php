@@ -30,6 +30,11 @@ class VetProfile extends Model
         'is_available',
     ];
 
+    protected $hidden = [
+        'latitude',
+        'longitude',
+    ];
+
     protected $casts = [
         'animals_handled' => 'array',
         'is_available' => 'boolean',

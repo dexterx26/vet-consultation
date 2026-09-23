@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/bookings/create', [Client\BookingController::class, 'create'])->name('bookings.create');
         Route::post('/bookings', [Client\BookingController::class, 'store'])->name('bookings.store');
         Route::get('/bookings/{consultation}', [Client\BookingController::class, 'show'])->name('bookings.show');
+        Route::get('/bookings/{consultation}/status', [Client\BookingController::class, 'status'])->name('bookings.status');
         Route::post('/bookings/{consultation}/cancel', [Client\BookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{consultation}/accept-reschedule', [Client\BookingController::class, 'acceptReschedule'])->name('bookings.accept-reschedule');
         Route::post('/bookings/{consultation}/decline-reschedule', [Client\BookingController::class, 'declineReschedule'])->name('bookings.decline-reschedule');
@@ -62,6 +63,7 @@ Route::middleware('auth')->group(function () {
     // ----------------------------------------------------
     Route::middleware('role:veterinarian')->prefix('vet')->name('vet.')->group(function () {
         Route::get('/dashboard', [Vet\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/pending-requests', [Vet\DashboardController::class, 'fetchPendingRequests'])->name('dashboard.pending-requests');
         Route::post('/toggle-availability', [Vet\DashboardController::class, 'toggleAvailability'])->name('toggle-availability');
 
         // Schedule & Profile Settings

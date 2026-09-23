@@ -17,3 +17,8 @@ Broadcast::channel('consultation.{consultationId}', function ($user, $consultati
     return (int) $consultation->client_id === (int) $user->id 
         || (int) $consultation->vet_id === (int) $user->id;
 });
+
+Broadcast::channel('vet.{vetId}', function ($user, $vetId) {
+    return (int) $user->id === (int) $vetId && $user->isVet();
+});
+
