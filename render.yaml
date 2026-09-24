@@ -1,0 +1,72 @@
+# Render Blueprint Specification for Laravel 12 Application
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: vet-consultation-db
+    databaseName: vet_consultation
+    user: vet_user
+    plan: free # Change to 'starter' for production persistent data
+
+services:
+  - type: web
+    name: vet-consultation-app
+    runtime: docker
+    plan: free # Change to 'starter' for 24/7 continuous uptime (no spin-down)
+    healthCheckPath: /up
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: "Veterinary Teleconsultation"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vet-consultation-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: BROADCAST_CONNECTION
+        value: reverb
+      - key: REVERB_APP_ID
+        value: vet_teleconsult_app
+      - key: REVERB_APP_KEY
+        value: vet_teleconsult_key
+      - key: REVERB_APP_SECRET
+        generateValue: true
+      - key: REVERB_SERVER_HOST
+        value: 127.0.0.1
+      - key: REVERB_SERVER_PORT
+        value: "8080"
+      - key: REVERB_PORT
+        value: "443"
+      - key: REVERB_SCHEME
+        value: https
+      - key: REVERB_API_HOST
+        value: 127.0.0.1
+      - key: REVERB_API_PORT
+        value: "8080"
+      - key: REVERB_API_SCHEME
+        value: http
+      - key: VITE_REVERB_APP_KEY
+        value: vet_teleconsult_key
+      - key: VITE_REVERB_PORT
+        value: "443"
+      - key: VITE_REVERB_SCHEME
+        value: https
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: RUN_SEEDER
+        value: "true"

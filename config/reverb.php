@@ -32,7 +32,7 @@ return [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
             'port' => env('REVERB_SERVER_PORT', 8001),
             'path' => env('REVERB_SERVER_PATH', ''),
-            'hostname' => env('REVERB_HOST'),
+            'hostname' => env('REVERB_HOST', env('RENDER_EXTERNAL_HOSTNAME')),
             'options' => [
                 'tls' => [],
             ],
@@ -77,7 +77,7 @@ return [
                 'secret' => env('REVERB_APP_SECRET'),
                 'app_id' => env('REVERB_APP_ID'),
                 'options' => [
-                    'host' => env('REVERB_HOST'),
+                    'host' => env('REVERB_HOST', env('RENDER_EXTERNAL_HOSTNAME')),
                     'port' => env('REVERB_PORT', 8001),
                     'scheme' => env('REVERB_SCHEME', 'https'),
                     'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
