@@ -1,8 +1,19 @@
 # ==========================================
-# Stage 1: Build Frontend Assets (Vite)
+# Stage 1: Build Frontend Assets (Vite & Laravel Reverb)
 # ==========================================
 FROM node:20-alpine AS frontend
 WORKDIR /app
+
+# Laravel Reverb WebSocket build arguments for Vite
+ARG VITE_REVERB_APP_KEY=vet_teleconsult_key
+ARG VITE_REVERB_HOST
+ARG VITE_REVERB_PORT=443
+ARG VITE_REVERB_SCHEME=https
+
+ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY} \
+    VITE_REVERB_HOST=${VITE_REVERB_HOST} \
+    VITE_REVERB_PORT=${VITE_REVERB_PORT} \
+    VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
 
 COPY package*.json ./
 RUN npm ci || npm install
@@ -62,9 +73,20 @@ COPY --from=frontend /app/public/build /var/www/html/public/build
 # Install PHP dependencies without development packages
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-# Copy configuration files
+# Default Laravel Reverb WebSocket server environment
+ENV BROADCAST_CONNECTION=reverb \
+    REVERB_APP_ID=vet_teleconsult_app \
+    REVERB_APP_KEY=vet_teleconsult_key \
+    REVERB_SERVER_HOST=0.0.0.0 \
+    REVERB_SERVER_PORT=8080 \
+    REVERB_PORT=443 \
+    REVERB_SCHEME=https \
+    ENABLE_REVERB=true
+
+# Copy configuration files (Nginx, PHP, Supervisor with Laravel Reverb)
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
@@ -75,7 +97,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Render injects PORT environment variable
+# Expose HTTP port and Laravel Reverb WebSocket port (8080)
 EXPOSE 80 8080 10000
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -16,9 +16,11 @@ const wsPort = configuredPort
     ? parseInt(configuredPort) 
     : (isHttps ? 443 : 8001);
 
+const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || (typeof window !== 'undefined' && window.REVERB_APP_KEY) || 'vet_teleconsult_key';
+
 window.Echo = new Echo({
     broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
+    key: reverbKey,
     wsHost: wsHost,
     wsPort: wsPort,
     wssPort: wsPort,
