@@ -30,6 +30,8 @@ php artisan storage:link --force || true
 
 # Run database migrations
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+    echo ">>> Checking migration status..."
+    php artisan migrate:status || true
     echo ">>> Running database migrations..."
     php artisan migrate --force || echo ">>> Migration warning: Please check database connection."
 fi
