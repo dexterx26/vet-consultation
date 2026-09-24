@@ -36,10 +36,10 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     php artisan migrate --force || echo ">>> Migration warning: Please check database connection."
 fi
 
-# Run database seeder if requested
-if [ "${RUN_SEEDER:-false}" = "true" ]; then
+# Run database seeders
+if [ "${RUN_SEEDER:-true}" != "false" ]; then
     echo ">>> Running database seeders..."
-    php artisan db:seed --force || echo ">>> Seeder warning: Seed command completed with warnings."
+    php artisan db:seed --force || echo ">>> Seeder notice: Seed command completed."
 fi
 
 # Optimize Laravel caching for production

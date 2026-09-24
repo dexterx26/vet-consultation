@@ -22,6 +22,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (User::where('email', 'admin@vetconsult.com')->exists()) {
+            $this->command?->info('Default database seed data is already present. Skipping seeder.');
+            return;
+        }
+
         // 1. Admin User
         $admin = User::create([
             'name' => 'System Admin',
