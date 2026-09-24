@@ -80,6 +80,37 @@ class VideoController extends Controller
         ));
     }
 
+    public function signalPeer(Request $request, Consultation $consultation)
+    {
+        $user = Auth::user();
+        if ($consultation->client_id !== $user->id && $consultation->vet_id !== $user->id && !$user->isAdmin()) {
+            abort(403);
+        }
+
+        $peerId = $request->input('peer_id');
+        if (!$peerId) {
+            return response()->json(['error' => 'Missing peer_id'], 422);
+        }
+
+        $role = ($user->id === $consultation->vet_id) ? 'vet' : 'client';
+        $cacheKey = "consultation_{$consultation->id}_{$role}_peer";
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $peerId, 120);
+
+        try {
+            broadcast(new \App\Events\ConsultationPeerSignaled($consultation->id, $peerId, $role))->toOthers();
+        } catch (\Throwable $e) {
+            // Heartbeat fallback covers signaling if socket is delayed
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'my_role' => $role,
+            'my_peer_id' => $peerId,
+            'vet_peer_id' => \Illuminate\Support\Facades\Cache::get("consultation_{$consultation->id}_vet_peer"),
+            'client_peer_id' => \Illuminate\Support\Facades\Cache::get("consultation_{$consultation->id}_client_peer"),
+        ]);
+    }
+
     public function endCall(Request $request, Consultation $consultation)
     {
         $user = Auth::user();

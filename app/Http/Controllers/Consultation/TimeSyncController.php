@@ -18,11 +18,20 @@ class TimeSyncController extends Controller
             abort(403, 'Unauthorized access to consultation.');
         }
 
+        $peerId = $request->input('peer_id');
+        $isVet = ($user->id === $consultation->vet_id);
+        if ($peerId) {
+            $cacheKey = $isVet ? "consultation_{$consultation->id}_vet_peer" : "consultation_{$consultation->id}_client_peer";
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $peerId, 120);
+        }
+
         $timerData = self::processHeartbeat($consultation, $user);
 
         return response()->json([
             'status' => 'success',
             'timer' => $timerData,
+            'vet_peer_id' => \Illuminate\Support\Facades\Cache::get("consultation_{$consultation->id}_vet_peer"),
+            'client_peer_id' => \Illuminate\Support\Facades\Cache::get("consultation_{$consultation->id}_client_peer"),
         ]);
     }
 

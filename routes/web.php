@@ -129,6 +129,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/consultation/{consultation}/chat/end', [Consultation\ChatController::class, 'endChat'])->name('consultation.chat.end');
 
     Route::get('/consultation/{consultation}/video', [Consultation\VideoController::class, 'showRoom'])->name('consultation.video');
+    Route::post('/consultation/{consultation}/video/signal', [Consultation\VideoController::class, 'signalPeer'])->name('consultation.video.signal');
     Route::post('/consultation/{consultation}/video/end', [Consultation\VideoController::class, 'endCall'])->name('consultation.video.end');
     Route::post('/consultation/{consultation}/sync-time', [Consultation\TimeSyncController::class, 'sync'])->name('consultation.sync-time');
 

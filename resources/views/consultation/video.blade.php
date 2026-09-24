@@ -3,7 +3,7 @@
 @section('title', 'Video Consultation — #' . $consultation->consultation_number)
 
 @push('styles')
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 @endpush
 
 @section('content')
@@ -366,6 +366,15 @@
     </div>
     @endif
 
+    <!-- Media Access Notice Banner -->
+    <div x-show="mediaErrorMessage" x-transition class="bg-rose-600/90 text-white text-xs px-4 py-3 rounded-2xl flex items-center justify-between shadow-lg" style="display: none;">
+        <div class="flex items-center space-x-2.5">
+            <i class="fa-solid fa-triangle-exclamation text-base shrink-0"></i>
+            <span x-text="mediaErrorMessage"></span>
+        </div>
+        <button type="button" @click="startLocalStream(); mediaErrorMessage = null;" class="bg-white text-rose-700 font-bold px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 shrink-0 ml-3">Allow / Retry</button>
+    </div>
+
     <!-- Main Video Grid Container -->
     <div id="videoRoomContainer"
          class="relative bg-navy-900 overflow-hidden shadow-2xl border border-slate-800 w-full flex items-center justify-center select-none transition-all duration-300"
@@ -378,6 +387,24 @@
                class="w-full h-full transition-all duration-300"
                :class="fitMode === 'cover' ? 'object-cover' : 'object-contain'"
                x-show="remoteConnected"></video>
+
+        <!-- Browser Autoplay Permission Button Overlay -->
+        <div x-show="showUnmutePrompt && remoteConnected" x-transition
+             class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 bg-slate-950/95 backdrop-blur-md text-white p-5 rounded-3xl shadow-2xl border border-brand-500/80 text-center space-y-3 max-w-xs"
+             style="display: none;">
+            <div class="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 mx-auto flex items-center justify-center text-xl animate-pulse">
+                <i class="fa-solid fa-volume-high"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm">Remote Video Connected</h4>
+                <p class="text-[11px] text-slate-300 mt-1">Browser requires user interaction to enable live audio & video playback.</p>
+            </div>
+            <button type="button" @click="unmuteRemoteVideo()"
+                    class="w-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-play text-xs"></i>
+                <span>Click to Play Live Stream</span>
+            </button>
+        </div>
 
         <!-- Remote Waiting Placeholder Overlay -->
         <div x-show="!remoteConnected" class="absolute inset-0 bg-navy-900/95 backdrop-blur flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-3 sm:space-y-4 z-10">
@@ -532,6 +559,11 @@
             localStream: null,
             peer: null,
             currentCall: null,
+            myPeerId: null,
+            knownTargetPeerId: null,
+            isConnectingCall: false,
+            showUnmutePrompt: false,
+            mediaErrorMessage: null,
             facingMode: 'user',
             hasMultipleCameras: false,
             fitMode: 'cover',
@@ -701,6 +733,16 @@
                             this.pendingExtension = null;
                         }
                     });
+
+                    channel.listen('.peer.signaled', (e) => {
+                        console.log('Peer signaled event received via Reverb:', e);
+                        const myRole = this.isVet ? 'vet' : 'client';
+                        if (e.role !== myRole && e.peer_id) {
+                            this.knownTargetPeerId = e.peer_id;
+                            console.log(`Discovered ${e.role} peer ID via Reverb:`, e.peer_id);
+                            this.connectToTargetPeer(e.peer_id);
+                        }
+                    });
                 } catch (err) {
                     this.isEchoConnected = false;
                     console.warn('Error subscribing to Echo private channel in video room:', err);
@@ -717,7 +759,10 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
-                    }
+                    },
+                    body: JSON.stringify({
+                        peer_id: this.myPeerId || null
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -729,6 +774,16 @@
                         this.clientPresent = data.timer.client_present;
                         this.isTimerRunning = data.timer.is_timer_running;
                         this.pendingExtension = data.timer.pending_extension;
+
+                        // Check counterpart peer ID from sync response
+                        const counterpartPeerId = this.isVet ? data.client_peer_id : data.vet_peer_id;
+                        if (counterpartPeerId && counterpartPeerId !== this.knownTargetPeerId) {
+                            this.knownTargetPeerId = counterpartPeerId;
+                            console.log('Discovered counterpart peer ID via sync-time:', counterpartPeerId);
+                            this.connectToTargetPeer(counterpartPeerId);
+                        } else if (counterpartPeerId && !this.remoteConnected && !this.isConnectingCall) {
+                            this.connectToTargetPeer(counterpartPeerId);
+                        }
 
                         // Dynamically synchronize timeLimitMinutes
                         const newMinutes = data.timer.duration_minutes !== undefined 
@@ -944,77 +999,262 @@
             },
 
             startLocalStream() {
-                const constraints = {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.mediaErrorMessage = 'Camera and microphone are not supported on this browser or HTTPS is required.';
+                    this.initPeer(null);
+                    return;
+                }
+
+                // 1. Try full video + audio
+                navigator.mediaDevices.getUserMedia({
                     video: { facingMode: this.facingMode },
                     audio: true
-                };
-
-                navigator.mediaDevices.getUserMedia(constraints)
+                })
                 .then(stream => {
-                    this.localStream = stream;
-                    const localVideo = document.getElementById('localVideo');
-                    if (localVideo) localVideo.srcObject = stream;
-                    
-                    // Re-check cameras once permission is granted
-                    this.checkCameraDevices();
-
-                    // Initialize WebRTC Peer connection
-                    this.initPeer(stream);
+                    this.handleLocalStreamSuccess(stream);
                 })
                 .catch(err => {
-                    console.log('Camera access notice:', err);
+                    console.warn('Video + Audio failed, trying video only:', err);
+                    // 2. Fallback to video only
+                    navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: this.facingMode },
+                        audio: false
+                    })
+                    .then(stream => {
+                        this.handleLocalStreamSuccess(stream);
+                    })
+                    .catch(err2 => {
+                        console.warn('Video only failed, trying audio only:', err2);
+                        // 3. Fallback to audio only
+                        navigator.mediaDevices.getUserMedia({
+                            video: false,
+                            audio: true
+                        })
+                        .then(stream => {
+                            this.handleLocalStreamSuccess(stream);
+                        })
+                        .catch(err3 => {
+                            console.warn('Media devices blocked or unavailable:', err3);
+                            this.mediaErrorMessage = 'Camera/Microphone permission denied. Please allow camera and mic permissions in your browser URL bar.';
+                            this.initPeer(null);
+                        });
+                    });
                 });
             },
 
-            initPeer(stream) {
-                const myPeerId = this.isVet ? `${this.roomName}_vet` : `${this.roomName}_client`;
-                const targetPeerId = this.isVet ? `${this.roomName}_client` : `${this.roomName}_vet`;
+            handleLocalStreamSuccess(stream) {
+                this.localStream = stream;
+                this.mediaErrorMessage = null;
+                const localVideo = document.getElementById('localVideo');
+                if (localVideo) {
+                    localVideo.srcObject = stream;
+                    localVideo.play().catch(() => {});
+                }
+                this.checkCameraDevices();
+                this.initPeer(stream);
+            },
 
+            createSilentBlackStream() {
                 try {
-                    this.peer = new Peer(myPeerId);
-
-                    this.peer.on('open', (id) => {
-                        console.log('My PeerJS ID:', id);
-                        this.callPeer(targetPeerId, stream);
-                    });
-
-                    this.peer.on('call', (call) => {
-                        this.currentCall = call;
-                        call.answer(stream);
-                        call.on('stream', (remoteStream) => {
-                            this.attachRemoteStream(remoteStream);
-                        });
-                    });
-
-                    const retryCall = setInterval(() => {
-                        if (this.remoteConnected || this.callTimeExpired) {
-                            clearInterval(retryCall);
-                        } else {
-                            this.callPeer(targetPeerId, stream);
-                        }
-                    }, 3000);
-
-                } catch(e) {
-                    console.log('PeerJS initialization error:', e);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    const stream = canvas.captureStream ? canvas.captureStream(10) : new MediaStream();
+                    return stream;
+                } catch (e) {
+                    return new MediaStream();
                 }
             },
 
-            callPeer(targetPeerId, stream) {
-                if (!this.peer || this.callTimeExpired) return;
-                const call = this.peer.call(targetPeerId, stream);
-                if (call) {
-                    this.currentCall = call;
-                    call.on('stream', (remoteStream) => {
-                        this.attachRemoteStream(remoteStream);
+            initPeer(stream) {
+                if (this.peer && !this.peer.destroyed) {
+                    try { this.peer.destroy(); } catch (e) {}
+                }
+
+                // Generate a unique session-scoped ID to completely eliminate "ID is taken" errors
+                const randomSuffix = Math.random().toString(36).substring(2, 7);
+                this.myPeerId = `${this.roomName}_${this.isVet ? 'vet' : 'client'}_${randomSuffix}`;
+                console.log('Initializing PeerJS with unique ID:', this.myPeerId);
+
+                const peerConfig = {
+                    host: '0.peerjs.com',
+                    port: 443,
+                    path: '/',
+                    secure: true,
+                    debug: 1,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                            { urls: 'stun:stun3.l.google.com:19302' },
+                            { urls: 'stun:stun4.l.google.com:19302' },
+                            { urls: 'stun:stun.cloudflare.com:3478' },
+                            { urls: 'stun:openrelay.metered.ca:80' }
+                        ],
+                        iceCandidatePoolSize: 10
+                    }
+                };
+
+                try {
+                    this.peer = new Peer(this.myPeerId, peerConfig);
+
+                    this.peer.on('open', (id) => {
+                        console.log('PeerJS cloud connection established. My ID:', id);
+                        this.broadcastMyPeerId();
                     });
+
+                    this.peer.on('call', (call) => {
+                        console.log('Incoming call received from:', call.peer);
+                        this.currentCall = call;
+                        const streamToSend = this.localStream || this.createSilentBlackStream();
+                        call.answer(streamToSend);
+
+                        call.on('stream', (remoteStream) => {
+                            console.log('Remote stream received from incoming call');
+                            this.attachRemoteStream(remoteStream);
+                        });
+
+                        call.on('close', () => {
+                            console.log('Call closed');
+                            this.remoteConnected = false;
+                            this.isConnectingCall = false;
+                        });
+
+                        call.on('error', (err) => {
+                            console.warn('Call error:', err);
+                            this.isConnectingCall = false;
+                        });
+                    });
+
+                    this.peer.on('error', (err) => {
+                        console.warn('PeerJS error encountered:', err.type, err.message);
+                        if (err.type === 'unavailable-id') {
+                            setTimeout(() => {
+                                this.initPeer(stream);
+                            }, 1000);
+                        } else if (err.type === 'peer-unavailable') {
+                            // Target peer not yet online, will auto-connect via heartbeat/event
+                            this.isConnectingCall = false;
+                        } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+                            setTimeout(() => {
+                                if (this.peer && !this.peer.destroyed && this.peer.disconnected) {
+                                    this.peer.reconnect();
+                                }
+                            }, 2500);
+                        }
+                    });
+
+                } catch (e) {
+                    console.error('PeerJS init failed:', e);
+                }
+            },
+
+            broadcastMyPeerId() {
+                if (!this.myPeerId) return;
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!csrfToken) return;
+
+                fetch(`/consultation/${this.consultationId}/video/signal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ peer_id: this.myPeerId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const counterpartPeerId = this.isVet ? data.client_peer_id : data.vet_peer_id;
+                        if (counterpartPeerId) {
+                            this.knownTargetPeerId = counterpartPeerId;
+                            console.log('Counterpart peer ID already known:', counterpartPeerId);
+                            this.connectToTargetPeer(counterpartPeerId);
+                        }
+                    }
+                })
+                .catch(err => console.warn('Signal broadcast failed:', err));
+            },
+
+            connectToTargetPeer(targetPeerId) {
+                if (!this.peer || this.peer.destroyed || !this.peer.open || this.callTimeExpired) return;
+                if (!targetPeerId) return;
+                if (this.remoteConnected) return;
+                if (this.currentCall && this.currentCall.open) return;
+                if (this.isConnectingCall) return;
+
+                console.log('Initiating WebRTC call to peer:', targetPeerId);
+                this.isConnectingCall = true;
+
+                try {
+                    const streamToSend = this.localStream || this.createSilentBlackStream();
+                    const call = this.peer.call(targetPeerId, streamToSend);
+
+                    if (call) {
+                        this.currentCall = call;
+
+                        call.on('stream', (remoteStream) => {
+                            console.log('Remote stream received from outgoing call');
+                            this.isConnectingCall = false;
+                            this.attachRemoteStream(remoteStream);
+                        });
+
+                        call.on('close', () => {
+                            console.log('Outgoing call closed');
+                            this.remoteConnected = false;
+                            this.isConnectingCall = false;
+                        });
+
+                        call.on('error', (err) => {
+                            console.warn('Outgoing call error:', err);
+                            this.isConnectingCall = false;
+                        });
+
+                        setTimeout(() => {
+                            if (!this.remoteConnected) {
+                                this.isConnectingCall = false;
+                            }
+                        }, 7000);
+                    } else {
+                        this.isConnectingCall = false;
+                    }
+                } catch (err) {
+                    console.warn('Failed to call target peer:', err);
+                    this.isConnectingCall = false;
                 }
             },
 
             attachRemoteStream(remoteStream) {
                 this.remoteConnected = true;
+                this.isConnectingCall = false;
+
                 const remoteVideo = document.getElementById('remoteVideo');
                 if (remoteVideo) {
                     remoteVideo.srcObject = remoteStream;
+                    const playPromise = remoteVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            this.showUnmutePrompt = false;
+                        }).catch(err => {
+                            console.warn('Browser autoplay prevented:', err);
+                            this.showUnmutePrompt = true;
+                        });
+                    }
+                }
+            },
+
+            unmuteRemoteVideo() {
+                const remoteVideo = document.getElementById('remoteVideo');
+                if (remoteVideo) {
+                    remoteVideo.muted = false;
+                    remoteVideo.play().then(() => {
+                        this.showUnmutePrompt = false;
+                    }).catch(() => {});
                 }
             },
 
