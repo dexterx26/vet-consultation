@@ -3,7 +3,7 @@
 @section('title', 'Prescription & Clinical Record — ' . $consultation->pet->name)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="prescriptionFormComponent({{ json_encode(old('medication_info', $record->medication_info ?? '')) }})">
+<div class="max-w-4xl mx-auto space-y-6" x-data="prescriptionFormComponent({{ json_encode(old('medication_info', $record->medication_info ?? '')) }}, {{ (old('has_follow_up') || old('follow_up_date') || $record->follow_up_date) ? 'true' : 'false' }})">
 
     <!-- Top Breadcrumb & Status Bar -->
     <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -240,7 +240,7 @@
                 </div>
             </div>
 
-            <!-- Section 3: Follow-up -->
+            <!-- Section 3: Follow-up & Discharge Instructions -->
             <div class="space-y-4 pt-4 border-t border-slate-100">
                 <div class="flex items-center space-x-2 text-slate-900 border-b border-slate-100 pb-2">
                     <i class="fa-solid fa-calendar-check text-brand-600 text-sm"></i>
@@ -249,12 +249,115 @@
 
                 <div>
                     <label for="follow_up_instructions" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Follow-up Directions
+                        Follow-up Directions & Home Care Instructions
                     </label>
                     <input type="text" name="follow_up_instructions" id="follow_up_instructions"
                            value="{{ old('follow_up_instructions', $record->follow_up_instructions) }}"
-                           placeholder="e.g. Return for re-evaluation in 5 days, or contact immediately if vomiting occurs"
+                           placeholder="e.g. Return for re-evaluation in 5-7 days, monitor hydration, or contact immediately if lethargy worsens"
                            class="w-full rounded-2xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500 shadow-sm">
+                </div>
+
+                <!-- Follow-up Teleconsultation Appointment Booking Card -->
+                <div class="bg-gradient-to-br from-brand-50/70 to-teal-50/50 p-5 rounded-3xl border border-brand-200/80 shadow-sm space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start space-x-3">
+                            <input type="checkbox" name="has_follow_up" id="has_follow_up" value="1"
+                                   x-model="scheduleFollowUp"
+                                   class="mt-1 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                            <div>
+                                <label for="has_follow_up" class="font-bold text-sm text-slate-800 cursor-pointer flex items-center space-x-2">
+                                    <span>Schedule Follow-up Teleconsultation Checkup</span>
+                                    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">Auto-book</span>
+                                </label>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Automatically creates a pending teleconsultation for this client with a locked date set by you. Credits are deducted when the client approves.
+                                </p>
+                            </div>
+                        </div>
+
+                        @if($record->followUpConsultation)
+                            <span class="inline-flex items-center space-x-1 text-xs px-2.5 py-1 rounded-xl bg-white border border-brand-200 text-brand-800 shadow-2xs shrink-0 font-medium">
+                                <i class="fa-solid fa-link text-[10px] text-brand-600"></i>
+                                <span>#{{ $record->followUpConsultation->consultation_number }} ({{ ucfirst($record->followUpConsultation->status) }})</span>
+                            </span>
+                        @endif
+                    </div>
+
+                    <!-- Expandable Follow-up Schedule Form -->
+                    <div x-show="scheduleFollowUp" x-transition class="space-y-4 pt-3 border-t border-brand-100">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            
+                            <!-- Follow-up Date -->
+                            <div>
+                                <label for="follow_up_date" class="block font-bold text-slate-700 mb-1.5 flex items-center space-x-1">
+                                    <i class="fa-solid fa-calendar text-brand-600"></i>
+                                    <span>Follow-up Date *</span>
+                                </label>
+                                <input type="date" name="follow_up_date" id="follow_up_date"
+                                       value="{{ old('follow_up_date', $record->follow_up_date ? $record->follow_up_date->format('Y-m-d') : '') }}"
+                                       min="{{ now()->format('Y-m-d') }}"
+                                       :required="scheduleFollowUp"
+                                       class="w-full rounded-xl border-slate-200 text-xs py-2.5 px-3 focus:ring-brand-500 focus:border-brand-500 bg-white shadow-2xs font-sans">
+                                <span class="text-[10px] text-slate-500 mt-1 block">Clinically locked date (client cannot edit).</span>
+                            </div>
+
+                            <!-- Follow-up Time -->
+                            <div>
+                                <label for="follow_up_time" class="block font-bold text-slate-700 mb-1.5 flex items-center space-x-1">
+                                    <i class="fa-solid fa-clock text-brand-600"></i>
+                                    <span>Preferred Time *</span>
+                                </label>
+                                <input type="time" name="follow_up_time" id="follow_up_time"
+                                       value="{{ old('follow_up_time', $record->follow_up_date ? $record->follow_up_date->format('H:i') : '10:00') }}"
+                                       :required="scheduleFollowUp"
+                                       class="w-full rounded-xl border-slate-200 text-xs py-2.5 px-3 focus:ring-brand-500 focus:border-brand-500 bg-white shadow-2xs font-sans">
+                                <span class="text-[10px] text-slate-500 mt-1 block">Expected consultation start time.</span>
+                            </div>
+
+                            <!-- Follow-up Session Type -->
+                            <div>
+                                <label for="follow_up_type" class="block font-bold text-slate-700 mb-1.5 flex items-center space-x-1">
+                                    <i class="fa-solid fa-video text-brand-600"></i>
+                                    <span>Consultation Type</span>
+                                </label>
+                                <select name="follow_up_type" id="follow_up_type"
+                                        class="w-full rounded-xl border-slate-200 text-xs py-2.5 px-3 focus:ring-brand-500 focus:border-brand-500 bg-white shadow-2xs">
+                                    <option value="video" {{ old('follow_up_type', $record->followUpConsultation->type ?? $consultation->type) === 'video' ? 'selected' : '' }}>Video Call</option>
+                                    <option value="chat" {{ old('follow_up_type', $record->followUpConsultation->type ?? $consultation->type) === 'chat' ? 'selected' : '' }}>Live Chat</option>
+                                </select>
+                                <span class="text-[10px] text-slate-500 mt-1 block">Medium for checkup.</span>
+                            </div>
+
+                            <!-- Follow-up Consultation Fee -->
+                            <div>
+                                <label for="follow_up_fee" class="block font-bold text-slate-700 mb-1.5 flex items-center space-x-1">
+                                    <i class="fa-solid fa-tag text-brand-600"></i>
+                                    <span>Follow-up Fee (₱)</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
+                                    <input type="number" step="0.01" min="0" name="follow_up_fee" id="follow_up_fee"
+                                           value="{{ old('follow_up_fee', $record->follow_up_fee ?? auth()->user()->vetProfile->follow_up_fee ?? 0.00) }}"
+                                           placeholder="0.00"
+                                           class="w-full pl-7 pr-3 rounded-xl border-slate-200 text-xs py-2.5 focus:ring-brand-500 focus:border-brand-500 bg-white shadow-2xs font-sans">
+                                </div>
+                                <span class="text-[10px] text-slate-500 mt-1 block">Set to <strong>0</strong> for a Free follow-up checkup.</span>
+                            </div>
+                        </div>
+
+                        <!-- Policy Explanation Callout -->
+                        <div class="bg-white/80 rounded-2xl p-3 border border-brand-100/80 text-[11px] text-slate-600 flex items-start space-x-2.5">
+                            <i class="fa-solid fa-circle-info text-brand-600 text-sm shrink-0 mt-0.5"></i>
+                            <div class="space-y-0.5">
+                                <p class="font-semibold text-slate-800">Follow-up Consultation Policy:</p>
+                                <p>
+                                    • The appointment date is locked and set by the doctor so the client cannot reschedule it.<br>
+                                    • If a fee is charged (e.g. ₱200 / 200 credits), credits will be deducted from the client's account <strong>only upon client approval</strong>.<br>
+                                    • If set to <strong>0</strong>, the follow-up teleconsultation is completely free for the patient.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -275,9 +378,10 @@
 
 @push('scripts')
 <script>
-function prescriptionFormComponent(initialMedication) {
+function prescriptionFormComponent(initialMedication, initialScheduleFollowUp) {
     return {
         useBuilder: true,
+        scheduleFollowUp: Boolean(initialScheduleFollowUp),
         rawMedicationInfo: initialMedication || '',
         suggestions: [
             { name: 'Amoxicillin + Clavulanate', dosage: '250mg Tablet', frequency: 'Twice daily (q12h)', duration: '7 days', quantity: '14 tablets', instructions: 'Administer with food' },

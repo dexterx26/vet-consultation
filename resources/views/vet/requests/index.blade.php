@@ -170,14 +170,25 @@
                         </div>
                         <div>
                             <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                                @if($consult->is_follow_up)
+                                    <span class="bg-teal-100 text-teal-800 border border-teal-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                                        <i class="fa-solid fa-calendar-check text-[9px]"></i>
+                                        <span>Follow-up</span>
+                                    </span>
+                                @endif
                                 <span class="text-xs uppercase font-extrabold px-2.5 py-0.5 rounded-full
-                                    @if($consult->status === 'accepted') bg-emerald-100 text-emerald-800
+                                    @if($consult->is_follow_up && $consult->status === 'pending') bg-amber-100 text-amber-800 border border-amber-300
+                                    @elseif($consult->status === 'accepted') bg-emerald-100 text-emerald-800
                                     @elseif($consult->status === 'pending') bg-amber-100 text-amber-800
                                     @elseif($consult->status === 'completed') bg-slate-100 text-slate-800
                                     @elseif($consult->status === 'in_progress') bg-blue-100 text-blue-800
                                     @elseif($consult->status === 'reschedule_suggested') bg-purple-100 text-purple-800
                                     @else bg-rose-100 text-rose-800 @endif">
-                                    {{ ucfirst(str_replace('_', ' ', $consult->status)) }}
+                                    @if($consult->is_follow_up && $consult->status === 'pending')
+                                        Awaiting Client Approval
+                                    @else
+                                        {{ ucfirst(str_replace('_', ' ', $consult->status)) }}
+                                    @endif
                                 </span>
                                 <span class="text-xs text-slate-400 font-mono">#{{ $consult->consultation_number }}</span>
                                 <span class="inline-flex items-center space-x-1 text-xs font-semibold text-brand-600 uppercase">
@@ -185,10 +196,16 @@
                                     <span>{{ $consult->type }}</span>
                                 </span>
                             </div>
-                            <h3 class="font-bold text-slate-800 text-base mt-1">Client: {{ $consult->client->name }}</h3>
+                            <h3 class="font-bold text-slate-800 text-base mt-1">
+                                Client: {{ $consult->client->name }}
+                                @if($consult->is_follow_up)
+                                    <span class="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-100">Follow-up Checkup</span>
+                                @endif
+                            </h3>
                             <p class="text-xs text-slate-600">
                                 Patient(s): <strong class="text-slate-800">{{ $consult->all_pets->pluck('name')->join(', ') }}</strong> • 
-                                Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong> ({{ $consult->duration_minutes ?: 15 }}m)
+                                Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong> ({{ $consult->duration_minutes ?: 15 }}m) •
+                                Fee: <strong>{{ ($consult->credits_cost ?? 0) > 0 ? '₱' . number_format($consult->fee, 2) . ' (' . $consult->credits_cost . ' cr)' : 'Free' }}</strong>
                             </p>
                             @if($consult->suggested_scheduled_at)
                                 <p class="text-xs text-purple-700 font-medium mt-0.5">
@@ -201,12 +218,19 @@
 
                     <div class="flex items-center space-x-2 shrink-0">
                         @if($consult->status === 'pending')
-                            <form method="POST" action="{{ route('vet.requests.accept', $consult) }}">
-                                @csrf
-                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-colors">
-                                    Accept
-                                </button>
-                            </form>
+                            @if($consult->is_follow_up)
+                                <span class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl font-medium flex items-center space-x-1">
+                                    <i class="fa-solid fa-hourglass-half text-[10px]"></i>
+                                    <span>Awaiting Client</span>
+                                </span>
+                            @else
+                                <form method="POST" action="{{ route('vet.requests.accept', $consult) }}">
+                                    @csrf
+                                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-colors">
+                                        Accept
+                                    </button>
+                                </form>
+                            @endif
                         @endif
 
                         @if(in_array($consult->status, ['accepted', 'in_progress', 'completed']))

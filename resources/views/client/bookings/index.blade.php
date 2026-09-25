@@ -36,25 +36,50 @@
                                 <i class="fa-solid {{ $consult->type === 'video' ? 'fa-video' : 'fa-comments' }}"></i>
                             </div>
                             <div>
-                                <div class="flex items-center space-x-2">
+                                <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                                    @if($consult->is_follow_up)
+                                        <span class="bg-teal-100 text-teal-800 border border-teal-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+                                            <i class="fa-solid fa-calendar-check text-[9px]"></i>
+                                            <span>Follow-up Checkup</span>
+                                        </span>
+                                    @endif
                                     <span class="text-xs uppercase font-extrabold px-2.5 py-0.5 rounded-full
-                                        @if($consult->status === 'accepted') bg-emerald-100 text-emerald-800
+                                        @if($consult->is_follow_up && $consult->status === 'pending') bg-teal-100 text-teal-800 border border-teal-300 animate-pulse
+                                        @elseif($consult->status === 'accepted') bg-emerald-100 text-emerald-800
                                         @elseif($consult->status === 'pending') bg-amber-100 text-amber-800
                                         @elseif($consult->status === 'reschedule_suggested') bg-indigo-100 text-indigo-800 border border-indigo-300 animate-pulse
                                         @elseif($consult->status === 'completed') bg-slate-100 text-slate-800
                                         @else bg-rose-100 text-rose-800 @endif">
-                                        {{ $consult->status === 'reschedule_suggested' ? 'New Time Proposed (Action Required)' : ucfirst(str_replace('_', ' ', $consult->status)) }}
+                                        @if($consult->is_follow_up && $consult->status === 'pending')
+                                            Follow-up Proposed (Action Required)
+                                        @elseif($consult->status === 'reschedule_suggested')
+                                            New Time Proposed (Action Required)
+                                        @else
+                                            {{ ucfirst(str_replace('_', ' ', $consult->status)) }}
+                                        @endif
                                     </span>
                                     <span class="text-xs text-slate-400 font-mono">#{{ $consult->consultation_number }}</span>
                                     <span class="text-xs font-semibold text-brand-600 uppercase">{{ $consult->type }}</span>
                                 </div>
-                                <h3 class="font-bold text-slate-800 text-base mt-1">Dr. {{ $consult->vet->name }}</h3>
+                                <h3 class="font-bold text-slate-800 text-base mt-1">
+                                    @if($consult->is_follow_up) Follow-up with @endif Dr. {{ $consult->vet->name }}
+                                </h3>
                                 <p class="text-xs text-slate-600">
                                     For: <strong class="text-slate-800">{{ $consult->all_pets->pluck('name')->join(', ') }}</strong> • 
                                     Scheduled: <strong>{{ $consult->scheduled_at->format('M d, Y @ g:i A') }}</strong> • 
-                                    Fee: <strong class="text-brand-700">₱{{ number_format($consult->fee, 2) }}</strong> ({{ $consult->duration_minutes ?: 15 }}m)
+                                    Fee: 
+                                    @if(($consult->credits_cost ?? 0) > 0)
+                                        <strong class="text-brand-700">₱{{ number_format($consult->fee, 2) }} ({{ $consult->credits_cost }} credits)</strong>
+                                    @else
+                                        <strong class="text-emerald-700 font-bold">Complimentary (Free)</strong>
+                                    @endif
+                                    ({{ $consult->duration_minutes ?: 15 }}m)
                                 </p>
-                                @if($consult->status === 'reschedule_suggested')
+                                @if($consult->is_follow_up && $consult->status === 'pending')
+                                    <p class="text-xs text-teal-700 font-semibold mt-1">
+                                        <i class="fa-solid fa-bell mr-1"></i> Doctor scheduled a follow-up checkup on {{ $consult->scheduled_at->format('M d, Y @ g:i A') }} (Fixed Date) — Click Details to Approve or Decline.
+                                    </p>
+                                @elseif($consult->status === 'reschedule_suggested')
                                     <p class="text-xs text-indigo-700 font-semibold mt-1">
                                         <i class="fa-solid fa-bell mr-1"></i> Doctor proposed: {{ $consult->suggested_scheduled_at ? $consult->suggested_scheduled_at->format('M d, Y @ g:i A') : '' }} — Click View Details to confirm or decline.
                                     </p>

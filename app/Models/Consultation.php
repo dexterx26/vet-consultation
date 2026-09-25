@@ -25,6 +25,8 @@ class Consultation extends Model
         'additional_fee',
         'credits_cost',
         'credits_deducted',
+        'is_follow_up',
+        'parent_consultation_id',
         'reason',
         'attachments',
         'decline_reason',
@@ -46,6 +48,7 @@ class Consultation extends Model
         'duration_minutes' => 'integer',
         'credits_cost' => 'integer',
         'credits_deducted' => 'integer',
+        'is_follow_up' => 'boolean',
         'time_consumed_seconds' => 'integer',
         'doctor_joined_at' => 'datetime',
         'doctor_last_seen_at' => 'datetime',
@@ -96,6 +99,16 @@ class Consultation extends Model
     public function record()
     {
         return $this->hasOne(ConsultationRecord::class, 'consultation_id');
+    }
+
+    public function parentConsultation()
+    {
+        return $this->belongsTo(Consultation::class, 'parent_consultation_id');
+    }
+
+    public function followUpConsultations()
+    {
+        return $this->hasMany(Consultation::class, 'parent_consultation_id');
     }
 
     public function call()

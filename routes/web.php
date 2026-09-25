@@ -22,11 +22,15 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login/force-logout', [AuthController::class, 'forceLogoutAndLogin'])->name('login.force');
     Route::get('/register/client', [AuthController::class, 'showRegisterClient'])->name('register.client');
     Route::post('/register/client', [AuthController::class, 'registerClient']);
     Route::get('/register/vet', [AuthController::class, 'showRegisterVet'])->name('register.vet');
     Route::post('/register/vet', [AuthController::class, 'registerVet']);
 });
+
+// Session Heartbeat & Concurrency Status Check
+Route::get('/session-status', [AuthController::class, 'checkSessionStatus'])->name('session.status');
 
 // Auth Common Routes
 Route::middleware('auth')->group(function () {
@@ -56,6 +60,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/bookings/{consultation}/cancel', [Client\BookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{consultation}/accept-reschedule', [Client\BookingController::class, 'acceptReschedule'])->name('bookings.accept-reschedule');
         Route::post('/bookings/{consultation}/decline-reschedule', [Client\BookingController::class, 'declineReschedule'])->name('bookings.decline-reschedule');
+        Route::post('/bookings/{consultation}/accept-follow-up', [Client\BookingController::class, 'acceptFollowUp'])->name('bookings.accept-follow-up');
+        Route::post('/bookings/{consultation}/decline-follow-up', [Client\BookingController::class, 'declineFollowUp'])->name('bookings.decline-follow-up');
     });
 
     // ----------------------------------------------------

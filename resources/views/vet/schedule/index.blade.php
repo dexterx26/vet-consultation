@@ -25,11 +25,21 @@
 
         <form method="POST" action="{{ route('vet.schedule.profile') }}" id="profile-settings-form" class="mt-6 space-y-4">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Base Consultation Fee (₱) *</label>
-                    <input type="number" step="0.01" name="consultation_fee" value="{{ old('consultation_fee', $profile->consultation_fee) }}" required
+                    <input type="number" step="0.01" name="consultation_fee" value="{{ old('consultation_fee', $profile->consultation_fee) }}" required min="0"
                         class="w-full rounded-xl border-slate-200 text-sm py-2.5 px-3.5 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Follow-up Consultation Fee (₱)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">₱</span>
+                        <input type="number" step="0.01" name="follow_up_fee" value="{{ old('follow_up_fee', $profile->follow_up_fee ?? 0.00) }}" min="0"
+                            placeholder="0.00"
+                            class="w-full pl-8 pr-3.5 rounded-xl border-slate-200 text-sm py-2.5 focus:ring-brand-500 focus:border-brand-500">
+                    </div>
+                    <span class="text-[11px] text-slate-500 mt-1 block">Enter <strong>0</strong> for free follow-up teleconsultations.</span>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Clinic / Hospital Name</label>

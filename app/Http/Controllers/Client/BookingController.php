@@ -220,7 +220,7 @@ class BookingController extends Controller
             return $this->status($consultation);
         }
 
-        $consultation->load(['vet', 'vet.vetProfile', 'pet', 'pets.animalType', 'pets.breed', 'messages.sender', 'record', 'call', 'review']);
+        $consultation->load(['vet', 'vet.vetProfile', 'pet', 'pets.animalType', 'pets.breed', 'messages.sender', 'record.followUpConsultation', 'call', 'review', 'parentConsultation.record']);
         $bookingCreditsCost = $consultation->credits_cost ?: (int) SystemSetting::get('booking_credits_cost', 300);
         $creditsPerMinute = (int) SystemSetting::get('time_extension_credits_per_minute', 5);
         $userCredits = Auth::user()->credits ?? 0;
@@ -319,6 +319,79 @@ class BookingController extends Controller
         ]);
 
         return back()->with('info', 'You declined the proposed schedule. The consultation request has been cancelled without any credit deduction.');
+    }
+
+    public function acceptFollowUp(Consultation $consultation)
+    {
+        if ($consultation->client_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (!$consultation->is_follow_up || $consultation->status !== 'pending') {
+            return back()->with('error', 'This follow-up consultation is no longer pending approval.');
+        }
+
+        $creditsToDeduct = (int) ($consultation->credits_cost ?? 0);
+
+        if ($creditsToDeduct > 0) {
+            if (!Auth::user()->hasSufficientCredits($creditsToDeduct)) {
+                return back()->with('error', "Insufficient credits! You need {$creditsToDeduct} credits to approve this follow-up consultation. Your current balance is " . (Auth::user()->credits ?? 0) . " credits. Please top up your credits.");
+            }
+
+            Auth::user()->deductCredits(
+                $creditsToDeduct,
+                $consultation->id,
+                "Confirmation of follow-up checkup #{$consultation->consultation_number}"
+            );
+        }
+
+        $consultation->update([
+            'status' => 'accepted',
+            'credits_deducted' => $creditsToDeduct,
+        ]);
+
+        $petNames = $consultation->all_pets->pluck('name')->join(', ') ?: ($consultation->pet->name ?? 'Patient');
+        $feeText = $creditsToDeduct > 0 ? "{$creditsToDeduct} credits were deducted" : "Free complimentary session";
+
+        AppNotification::create([
+            'user_id' => $consultation->vet_id,
+            'title' => 'Follow-up Checkup Confirmed! 🎉',
+            'message' => Auth::user()->name . ' approved the follow-up checkup for ' . $petNames . ' on ' . $consultation->scheduled_at->format('F d, Y @ g:i A') . ' (' . $feeText . ').',
+            'type' => 'success',
+            'is_read' => false,
+        ]);
+
+        $msg = $creditsToDeduct > 0
+            ? "Follow-up checkup confirmed! {$creditsToDeduct} credits were deducted from your balance."
+            : "Follow-up checkup confirmed! This session is complimentary (0 credits).";
+
+        return back()->with('success', $msg);
+    }
+
+    public function declineFollowUp(Consultation $consultation)
+    {
+        if ($consultation->client_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (!$consultation->is_follow_up || $consultation->status !== 'pending') {
+            return back()->with('error', 'Invalid consultation state.');
+        }
+
+        $consultation->update([
+            'status' => 'cancelled_by_client',
+        ]);
+
+        $petNames = $consultation->all_pets->pluck('name')->join(', ') ?: ($consultation->pet->name ?? 'Patient');
+        AppNotification::create([
+            'user_id' => $consultation->vet_id,
+            'title' => 'Follow-up Checkup Declined',
+            'message' => Auth::user()->name . ' declined the scheduled follow-up checkup for ' . $petNames . '.',
+            'type' => 'warning',
+            'is_read' => false,
+        ]);
+
+        return back()->with('info', 'Follow-up checkup appointment has been declined.');
     }
 
     public function cancel(Consultation $consultation)

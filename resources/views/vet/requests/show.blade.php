@@ -15,45 +15,71 @@
     <!-- Top Status Banner -->
     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                @if($consultation->is_follow_up)
+                    <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full bg-teal-100 text-teal-800 border border-teal-200 flex items-center space-x-1">
+                        <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                        <span>Follow-up Checkup</span>
+                    </span>
+                @endif
                 <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full 
                     @if($consultation->status === 'accepted') bg-emerald-100 text-emerald-800
                     @elseif($consultation->status === 'pending') bg-amber-100 text-amber-800
                     @elseif($consultation->status === 'reschedule_suggested') bg-indigo-100 text-indigo-800
                     @elseif($consultation->status === 'completed') bg-slate-100 text-slate-800
                     @else bg-rose-100 text-rose-800 @endif">
-                    {{ ucfirst(str_replace('_', ' ', $consultation->status)) }}
+                    @if($consultation->is_follow_up && $consultation->status === 'pending')
+                        Awaiting Client Approval
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $consultation->status)) }}
+                    @endif
                 </span>
                 <span class="text-xs text-slate-400 font-mono">#{{ $consultation->consultation_number }}</span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-800 mt-2">Request from {{ $consultation->client->name }}</h1>
+            <h1 class="text-2xl font-bold text-slate-800 mt-2">
+                @if($consultation->is_follow_up) Follow-up Checkup for @else Request from @endif {{ $consultation->client->name }}
+            </h1>
             <p class="text-xs text-slate-500 mt-1">
-                Requested Schedule: <strong class="text-slate-700">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong> • 
-                Mode: <span class="capitalize font-bold text-brand-600">{{ $consultation->type }}</span>
+                Scheduled: <strong class="text-slate-700">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong> • 
+                Mode: <span class="capitalize font-bold text-brand-600">{{ $consultation->type }}</span> •
+                Fee: <strong class="text-emerald-700">{{ ($consultation->credits_cost ?? 0) > 0 ? '₱' . number_format($consultation->fee, 2) . ' (' . $consultation->credits_cost . ' credits)' : 'Complimentary (Free)' }}</strong>
+                @if($consultation->is_follow_up)
+                    <span class="text-teal-700 font-bold ml-1">(Fixed Date by Doctor)</span>
+                @endif
             </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
             @if($consultation->status === 'pending')
-                <!-- Accept Button -->
-                <form method="POST" action="{{ route('vet.requests.accept', $consultation) }}" onsubmit="return confirm('Accept this consultation? {{ $consultation->credits_cost ?: $bookingCreditsCost }} credits will be deducted from client.');">
-                    @csrf
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center space-x-1.5">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>Accept Request (Deduct {{ $consultation->credits_cost ?: $bookingCreditsCost }} Credits)</span>
+                @if($consultation->is_follow_up)
+                    <span class="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3.5 py-2.5 rounded-xl font-semibold flex items-center space-x-1.5">
+                        <i class="fa-solid fa-hourglass-half text-amber-600"></i>
+                        <span>Awaiting Client Approval</span>
+                    </span>
+                    <button type="button" @click="declineModalOpen = true" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs px-3.5 py-2.5 rounded-xl transition-all border border-rose-200">
+                        Cancel Checkup
                     </button>
-                </form>
+                @else
+                    <!-- Accept Button -->
+                    <form method="POST" action="{{ route('vet.requests.accept', $consultation) }}" onsubmit="return confirm('Accept this consultation? {{ $consultation->credits_cost ?: $bookingCreditsCost }} credits will be deducted from client.');">
+                        @csrf
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center space-x-1.5">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Accept Request (Deduct {{ $consultation->credits_cost ?: $bookingCreditsCost }} Credits)</span>
+                        </button>
+                    </form>
 
-                <!-- Suggest Another Time Slot Button -->
-                <button type="button" @click="rescheduleModalOpen = true" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center space-x-1.5">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Suggest Another Slot</span>
-                </button>
+                    <!-- Suggest Another Time Slot Button -->
+                    <button type="button" @click="rescheduleModalOpen = true" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Suggest Another Slot</span>
+                    </button>
 
-                <!-- Decline Button -->
-                <button type="button" @click="declineModalOpen = true" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs px-3.5 py-2.5 rounded-xl transition-all">
-                    Decline
-                </button>
+                    <!-- Decline Button -->
+                    <button type="button" @click="declineModalOpen = true" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs px-3.5 py-2.5 rounded-xl transition-all">
+                        Decline
+                    </button>
+                @endif
             @endif
 
             @if(in_array($consultation->status, ['accepted', 'in_progress', 'completed']))
@@ -152,6 +178,85 @@
                 <p><strong>Doctor Note Sent to Client:</strong> "{{ $consultation->reschedule_note }}"</p>
                 <p class="text-slate-500 pt-1">• Waiting for the client to confirm or decline this suggested schedule. Credits will be deducted automatically once the client confirms.</p>
             </div>
+        </div>
+    @endif
+
+    <!-- Follow-up Awaiting Client Approval Banner -->
+    @if($consultation->is_follow_up && $consultation->status === 'pending')
+        <div class="bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200 rounded-3xl p-6 text-xs text-teal-950 shadow-sm space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center space-x-2.5 font-bold text-sm text-teal-900">
+                    <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm shadow-sm">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <span>Follow-up Checkup Scheduled (Awaiting Client Confirmation)</span>
+                </div>
+                <span class="text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    Pending Client Approval
+                </span>
+            </div>
+            <div class="bg-white/90 p-4 rounded-2xl border border-teal-100 space-y-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <span class="text-slate-500 block mb-0.5">Fixed Date & Time:</span>
+                        <strong class="text-slate-900 font-mono text-sm">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong>
+                        <span class="text-[10px] text-teal-700 block mt-0.5"><i class="fa-solid fa-lock text-[9px] mr-0.5"></i> Date cannot be edited by client</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block mb-0.5">Follow-up Fee Charged:</span>
+                        <strong class="text-emerald-700 font-mono text-sm">
+                            {{ ($consultation->credits_cost ?? 0) > 0 ? $consultation->credits_cost . ' credits (₱' . number_format($consultation->fee, 2) . ')' : 'Complimentary (Free / 0 credits)' }}
+                        </strong>
+                        <span class="text-[10px] text-slate-500 block mt-0.5">Credits will be deducted directly when client clicks Approve.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Linked Parent Consultation Card -->
+    @if($consultation->parentConsultation)
+        <div class="bg-teal-50/70 border border-teal-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <div>
+                    <span class="text-teal-800 font-extrabold block text-[10px] uppercase tracking-wider">Follow-up For Previous Consultation</span>
+                    <strong class="text-slate-900">Session #{{ $consultation->parentConsultation->consultation_number }}</strong>
+                    <span class="text-slate-500">({{ $consultation->parentConsultation->scheduled_at ? $consultation->parentConsultation->scheduled_at->format('M d, Y @ g:i A') : '' }})</span>
+                </div>
+            </div>
+            <a href="{{ route('vet.requests.show', $consultation->parentConsultation) }}" class="bg-white hover:bg-slate-50 text-teal-800 font-bold text-xs px-3.5 py-2 rounded-xl border border-teal-200 inline-flex items-center space-x-1.5 transition-all shrink-0">
+                <span>View Previous Medical Record</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    @endif
+
+    <!-- Follow-up Consultation Card for this Session -->
+    @if($consultation->record && $consultation->record->followUpConsultation)
+        <div class="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <span class="text-teal-800 font-extrabold block text-[10px] uppercase tracking-wider">Follow-up Checkup Scheduled</span>
+                    <strong class="text-slate-900">Session #{{ $consultation->record->followUpConsultation->consultation_number }}</strong>
+                    <span class="text-slate-600">• {{ $consultation->record->followUpConsultation->scheduled_at ? $consultation->record->followUpConsultation->scheduled_at->format('M d, Y @ g:i A') : '' }}</span>
+                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ml-1
+                        @if($consultation->record->followUpConsultation->status === 'accepted') bg-emerald-100 text-emerald-800
+                        @elseif($consultation->record->followUpConsultation->status === 'pending') bg-amber-100 text-amber-800
+                        @else bg-slate-100 text-slate-700 @endif">
+                        {{ ucfirst(str_replace('_', ' ', $consultation->record->followUpConsultation->status)) }}
+                    </span>
+                </div>
+            </div>
+            <a href="{{ route('vet.requests.show', $consultation->record->followUpConsultation) }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors inline-flex items-center space-x-1 shrink-0">
+                <span>View Follow-up Session</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
         </div>
     @endif
 

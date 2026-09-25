@@ -78,7 +78,7 @@ class RequestController extends Controller
             abort(403);
         }
 
-        $consultation->load(['client', 'pet', 'pet.animalType', 'pet.breed', 'messages.sender', 'record', 'call']);
+        $consultation->load(['client', 'pet', 'pet.animalType', 'pet.breed', 'messages.sender', 'record.followUpConsultation', 'call', 'parentConsultation.record']);
         $bookingCreditsCost = (int) SystemSetting::get('booking_credits_cost', 300);
 
         return view('vet.requests.show', compact('consultation', 'bookingCreditsCost'));

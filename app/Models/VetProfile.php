@@ -18,6 +18,7 @@ class VetProfile extends Model
         'expertise',
         'animals_handled',
         'consultation_fee',
+        'follow_up_fee',
         'additional_pet_fee',
         'additional_pet_duration',
         'bio',
@@ -39,6 +40,7 @@ class VetProfile extends Model
         'animals_handled' => 'array',
         'is_available' => 'boolean',
         'consultation_fee' => 'decimal:2',
+        'follow_up_fee' => 'decimal:2',
         'additional_pet_fee' => 'decimal:2',
         'additional_pet_duration' => 'integer',
     ];

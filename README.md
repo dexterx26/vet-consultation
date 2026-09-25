@@ -1,11 +1,65 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Veterinary Teleconsultation Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern veterinary teleconsultation platform built with Laravel 12, Alpine.js, Tailwind CSS, and Reverb WebSockets.
+
+---
+
+## 🔄 Dual Environment: Development vs Production
+
+This application is configured with a 1-click switch between **Local Development (SQLite)** and **Production Cloud (PostgreSQL on Render)**.
+
+### Environment Profiles
+
+| Feature | 💻 Development (`dev`) | ☁️ Production (`prod`) |
+| :--- | :--- | :--- |
+| **Database** | **SQLite** (`database/database.sqlite`) | **PostgreSQL** (`vet_consultation` on Render) |
+| **Environment** | `APP_ENV=local` | `APP_ENV=production` |
+| **Debug Mode** | `APP_DEBUG=true` (Detailed error pages) | `APP_DEBUG=false` (Production error pages) |
+| **App URL** | `http://localhost:8000` | `https://vet-consultation-app.onrender.com` |
+| **WebSockets** | `http://127.0.0.1:8001` (Local HTTP/WS) | `wss://...:443` (Cloud HTTPS/WSS via Nginx) |
+| **Logging** | `storage/logs/laravel.log` | `stderr` (Render Cloud Logs) |
+
+---
+
+### How to Switch Environments
+
+#### Option 1: 1-Click Windows Batch Scripts (Easiest)
+- **Switch to Local Dev (SQLite):** Double-click `switch-to-dev.bat`
+- **Switch to Production (PostgreSQL):** Double-click `switch-to-prod.bat`
+- **Interactive Menu:** Double-click `switch-env.bat`
+
+#### Option 2: Artisan CLI Command
+```bash
+# Switch to Development (SQLite)
+php artisan env:switch dev
+
+# Switch to Production (PostgreSQL)
+php artisan env:switch prod
+
+# Check current active environment status
+php artisan env:switch status
+```
+
+---
+
+## 🚀 Running Locally on your Laptop / PC
+
+1. Ensure you are in development mode:
+   ```bash
+   php artisan env:switch dev
+   ```
+2. Double-click `start-dev.bat` or run:
+   ```bash
+   # Starts HTTP server, Reverb WebSockets, and Vite asset compiler
+   start-dev.bat
+   ```
+3. Open your browser:
+   - **Web Application:** `http://localhost:8000`
+   - **Demo Pet Owner:** `client@gmail.com` / `password`
+   - **Demo Veterinarian:** `dr.maria@vetconsult.com` / `password`
+   - **Demo Admin:** `admin@vetconsult.com` / `password`
+
+---
 
 ## About Laravel
 

@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 
+use App\Services\DeviceDetector;
+use App\Events\UserSessionTerminated;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+
 class AuthController extends Controller
 {
     public function showLogin()
@@ -26,23 +32,174 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'force_logout' => ['nullable', 'boolean'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            $user = Auth::user();
+        $user = User::where('email', $credentials['email'])->first();
 
-            if ($user->status === 'suspended') {
-                Auth::logout();
-                return back()->withErrors(['email' => 'Your account has been suspended by an administrator.']);
-            }
-
-            return $this->redirectBasedOnRole($user);
+        // Check credentials
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors([
+                'email' => 'The provided credentials do not match our records.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        // Account status check
+        if ($user->status === 'suspended') {
+            return back()->withErrors(['email' => 'Your account has been suspended by an administrator.']);
+        }
+
+        // Clean up expired sessions for this user
+        $lifetimeSeconds = config('session.lifetime', 120) * 60;
+        $cutoff = time() - $lifetimeSeconds;
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->where('last_activity', '<', $cutoff)
+            ->delete();
+
+        // Check for existing active session on another device/browser
+        $activeOtherSessions = DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->where('id', '!=', $request->session()->getId())
+            ->where('last_activity', '>=', $cutoff)
+            ->orderByDesc('last_activity')
+            ->get();
+
+        // DUAL LOGIN PREVENTION: If active session exists and user has NOT requested force logout
+        if ($activeOtherSessions->isNotEmpty() && ! $request->boolean('force_logout')) {
+            $conflictSession = $activeOtherSessions->first();
+            $deviceInfo = DeviceDetector::parse($conflictSession->user_agent);
+
+            // Store temporary one-time confirmation token in session (valid for 5 mins)
+            $pendingToken = Str::random(40);
+            $request->session()->put('dual_login_pending', [
+                'user_id' => $user->id,
+                'token' => $pendingToken,
+                'remember' => $request->boolean('remember'),
+                'expires_at' => time() + 300,
+            ]);
+
+            return back()->withInput($request->only('email'))->with('dual_login_conflict', [
+                'device' => $deviceInfo['full'],
+                'platform' => $deviceInfo['platform'],
+                'browser' => $deviceInfo['browser'],
+                'icon' => $deviceInfo['icon'],
+                'ip_address' => $conflictSession->ip_address ?: 'Unknown IP',
+                'last_activity' => Carbon::createFromTimestamp($conflictSession->last_activity)->diffForHumans(),
+                'token' => $pendingToken,
+            ]);
+        }
+
+        // Force logout requested or no concurrent session
+        if ($activeOtherSessions->isNotEmpty() && $request->boolean('force_logout')) {
+            $this->terminateOtherSessions($user, $request);
+        }
+
+        // Authenticate user
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+        $request->session()->forget('dual_login_pending');
+
+        $redirect = $this->redirectBasedOnRole($user);
+        if ($activeOtherSessions->isNotEmpty() && $request->boolean('force_logout')) {
+            return $redirect->with('info', 'Logged in successfully. Your previous session on other devices has been terminated.');
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Force logout existing active device and authenticate immediately via confirmed token.
+     */
+    public function forceLogoutAndLogin(Request $request)
+    {
+        $pending = $request->session()->get('dual_login_pending');
+
+        if (! $pending || ! hash_equals($pending['token'] ?? '', (string) $request->input('token')) || time() > ($pending['expires_at'] ?? 0)) {
+            $request->session()->forget('dual_login_pending');
+            return redirect()->route('login')->withErrors([
+                'email' => 'Session confirmation timed out. Please enter your credentials again.',
+            ]);
+        }
+
+        $user = User::find($pending['user_id']);
+        if (! $user || $user->status === 'suspended') {
+            $request->session()->forget('dual_login_pending');
+            return redirect()->route('login')->withErrors([
+                'email' => 'Unable to authenticate with this account.',
+            ]);
+        }
+
+        // Terminate other sessions and notify them
+        $this->terminateOtherSessions($user, $request);
+
+        // Log in user on current device
+        Auth::login($user, (bool) ($pending['remember'] ?? false));
+        $request->session()->regenerate();
+        $request->session()->forget('dual_login_pending');
+
+        return $this->redirectBasedOnRole($user)->with('info', 'Logged in successfully. Your other active session has been logged out.');
+    }
+
+    /**
+     * Invalidate and broadcast termination for other active sessions of the user.
+     */
+    protected function terminateOtherSessions(User $user, Request $request): void
+    {
+        $currentDevice = DeviceDetector::parse($request->userAgent())['full'];
+
+        try {
+            broadcast(new UserSessionTerminated($user->id, 'dual_login', $currentDevice))->toOthers();
+        } catch (\Throwable $e) {
+            // Keep going even if Reverb server is offline
+        }
+
+        // Invalidate other sessions in database
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->where('id', '!=', $request->session()->getId())
+            ->delete();
+
+        // Invalidate old remember-me cookies on other devices
+        $user->forceFill([
+            'remember_token' => Str::random(60),
+        ])->save();
+    }
+
+    /**
+     * Check current session status for active device enforcement.
+     */
+    public function checkSessionStatus(Request $request)
+    {
+        if (! Auth::check()) {
+            return response()->json([
+                'active' => false,
+                'reason' => 'unauthenticated',
+                'message' => 'You are not logged in.',
+            ]);
+        }
+
+        $sessionId = $request->session()->getId();
+        $exists = DB::table('sessions')
+            ->where('id', $sessionId)
+            ->where('user_id', Auth::id())
+            ->exists();
+
+        if (! $exists) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'active' => false,
+                'reason' => 'dual_login_terminated',
+                'message' => 'Your session was ended because this account was logged into on another device.',
+            ]);
+        }
+
+        return response()->json([
+            'active' => true,
+        ]);
     }
 
     public function showRegisterClient()
@@ -163,9 +320,16 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $sessionId = $request->session()->getId();
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($sessionId) {
+            DB::table('sessions')->where('id', $sessionId)->delete();
+        }
+
         return redirect()->route('login');
     }
 

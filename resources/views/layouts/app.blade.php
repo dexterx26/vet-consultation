@@ -338,6 +338,107 @@
             }
         </script>
         @endif
+
+        <!-- Session Terminated Modal (Dual Login Restriction) -->
+        <div id="session-terminated-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 sm:p-8 text-center space-y-4">
+                <div class="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto border border-rose-100 shadow-sm animate-pulse">
+                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Session Terminated</h3>
+                    <p class="text-xs text-rose-600 font-semibold mt-1">Dual Login Restriction</p>
+                </div>
+                <p id="session-terminated-message" class="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                    Your account was logged into on another device. Simultaneous logins are not permitted on this account.
+                </p>
+                <div class="pt-2">
+                    <a href="{{ route('login', ['reason' => 'dual_login_terminated']) }}" class="w-full inline-flex items-center justify-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-5 rounded-xl shadow-md shadow-brand-600/20 text-xs sm:text-sm transition-all">
+                        <span>Return to Log In</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+                <p class="text-[11px] text-slate-400">
+                    Redirecting automatically in <span id="session-redirect-countdown" class="font-bold text-slate-600">4</span>s...
+                </p>
+            </div>
+        </div>
+
+        <script>
+            (function() {
+                let isTerminated = false;
+                const userId = {{ auth()->id() }};
+                const modal = document.getElementById('session-terminated-modal');
+                const messageEl = document.getElementById('session-terminated-message');
+                const countdownEl = document.getElementById('session-redirect-countdown');
+
+                function triggerTermination(customMsg) {
+                    if (isTerminated) return;
+                    isTerminated = true;
+
+                    if (messageEl && customMsg) {
+                        messageEl.textContent = customMsg;
+                    }
+
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+
+                    let seconds = 4;
+                    const timer = setInterval(() => {
+                        seconds--;
+                        if (countdownEl) countdownEl.textContent = seconds;
+                        if (seconds <= 0) {
+                            clearInterval(timer);
+                            window.location.href = "{{ route('login', ['reason' => 'dual_login_terminated']) }}";
+                        }
+                    }, 1000);
+                }
+
+                // 1. Listen for real-time Reverb WebSocket broadcast
+                function initEchoTerminationListener() {
+                    if (window.Echo && typeof window.Echo.private === 'function') {
+                        try {
+                            window.Echo.private('App.Models.User.' + userId)
+                                .listen('.session.terminated', (e) => {
+                                    triggerTermination(e.message || 'Your account was accessed from another device. This session has been terminated.');
+                                });
+                        } catch (err) {
+                            console.warn('Echo private channel subscription error:', err);
+                        }
+                    } else {
+                        setTimeout(initEchoTerminationListener, 600);
+                    }
+                }
+                initEchoTerminationListener();
+
+                // 2. Periodic heartbeat & session check (every 20 seconds)
+                setInterval(() => {
+                    if (isTerminated || document.hidden) return;
+
+                    fetch('{{ route('session.status') }}', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => {
+                        if (res.status === 401) {
+                            triggerTermination('Your session has ended because your account was accessed from another device.');
+                            return null;
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.active === false) {
+                            triggerTermination(data.message || 'Your session has ended because your account was accessed from another device.');
+                        }
+                    })
+                    .catch(() => {});
+                }, 20000);
+            })();
+        </script>
     @endauth
 
     @stack('scripts')

@@ -47,7 +47,13 @@
     <!-- Status Header Banner -->
     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 flex-wrap gap-y-1">
+                @if($consultation->is_follow_up)
+                    <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full bg-teal-100 text-teal-800 border border-teal-200 flex items-center space-x-1">
+                        <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                        <span>Follow-up Checkup</span>
+                    </span>
+                @endif
                 <span class="text-xs uppercase font-extrabold px-3 py-1 rounded-full transition-all flex items-center space-x-1.5" 
                     :class="{
                         'bg-emerald-100 text-emerald-800': status === 'accepted',
@@ -73,14 +79,22 @@
                     <i class="fa-solid fa-rotate fa-spin mr-0.5"></i> Syncing...
                 </span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-800 mt-2">Consultation with Dr. {{ $consultation->vet->name }}</h1>
+            <h1 class="text-2xl font-bold text-slate-800 mt-2">
+                @if($consultation->is_follow_up) Follow-up Checkup with @else Consultation with @endif Dr. {{ $consultation->vet->name }}
+            </h1>
             <p class="text-xs text-slate-500 mt-1">
                 Pets: <strong class="text-slate-700">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong> • 
                 Duration: <strong class="text-slate-700">{{ $consultation->duration_minutes ?: 15 }} mins</strong> • 
-                Time Consumed: <strong class="text-amber-700">{{ $consultation->formatted_consumed_time }}</strong> • 
-                Remaining: <strong class="text-emerald-700">{{ $consultation->formatted_remaining_time }}</strong> • 
-                Fee: <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }}</strong> •
+                Fee: 
+                @if(($consultation->credits_cost ?? 0) > 0)
+                    <strong class="text-emerald-700">₱{{ number_format($consultation->fee, 2) }} ({{ $consultation->credits_cost }} credits)</strong> • 
+                @else
+                    <strong class="text-emerald-700 font-bold">Complimentary (0 Credits)</strong> • 
+                @endif
                 Scheduled for <strong class="text-slate-700">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong>
+                @if($consultation->is_follow_up)
+                    <span class="text-teal-700 font-bold">(Fixed by Doctor)</span>
+                @endif
             </p>
         </div>
 
@@ -108,12 +122,32 @@
             </template>
 
             <template x-if="status === 'pending'">
-                <form method="POST" action="{{ route('client.bookings.cancel', $consultation) }}" onsubmit="return confirm('Cancel this consultation request?');">
-                    @csrf
-                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs px-4 py-2.5 rounded-xl border border-rose-200 transition-all">
-                        Cancel Request
-                    </button>
-                </form>
+                <div class="flex items-center space-x-2">
+                    @if($consultation->is_follow_up)
+                        <form method="POST" action="{{ route('client.bookings.decline-follow-up', $consultation) }}" onsubmit="return confirm('Decline this follow-up checkup?');">
+                            @csrf
+                            <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs px-4 py-2.5 rounded-xl border border-rose-200 transition-all">
+                                Decline
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('client.bookings.accept-follow-up', $consultation) }}" onsubmit="return confirm('Approve this follow-up checkup? {{ ($consultation->credits_cost ?? 0) > 0 ? $consultation->credits_cost . \" credits will be deducted.\" : \"No credits will be deducted (Free).\" }}');">
+                            @csrf
+                            <button type="submit"
+                                    @if(($consultation->credits_cost ?? 0) > 0 && ($userCredits < $consultation->credits_cost)) disabled @endif
+                                    class="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-teal-600/30 transition-all flex items-center space-x-1.5">
+                                <i class="fa-solid fa-check-circle"></i>
+                                <span>Approve Checkup ({{ ($consultation->credits_cost ?? 0) > 0 ? $consultation->credits_cost . ' Cr' : 'Free' }})</span>
+                            </button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('client.bookings.cancel', $consultation) }}" onsubmit="return confirm('Cancel this consultation request?');">
+                            @csrf
+                            <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs px-4 py-2.5 rounded-xl border border-rose-200 transition-all">
+                                Cancel Request
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </template>
 
             <template x-if="status === 'declined'">
@@ -212,6 +246,108 @@
         </div>
     @endif
 
+    <!-- Doctor Scheduled Follow-Up Checkup Banner (CRITICAL USER INTERACTION) -->
+    @if($consultation->is_follow_up && $consultation->status === 'pending')
+        <div class="bg-gradient-to-r from-teal-900 via-slate-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-teal-500/40 space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-400/30 text-teal-300 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-teal-500/20">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">Action Required</span>
+                        <h2 class="text-xl font-bold text-white mt-1">Dr. {{ $consultation->vet->name }} Scheduled a Follow-Up Checkup</h2>
+                        <p class="text-xs text-slate-300">A follow-up consultation has been scheduled for <strong class="text-teal-200">{{ $consultation->all_pets->pluck('name')->join(', ') }}</strong>.</p>
+                    </div>
+                </div>
+                @if($consultation->parentConsultation)
+                    <a href="{{ route('client.bookings.show', $consultation->parentConsultation) }}" class="inline-flex items-center space-x-1.5 text-xs text-teal-300 hover:text-teal-200 bg-white/10 hover:bg-white/15 px-3.5 py-2 rounded-xl border border-white/10 transition-colors shrink-0">
+                        <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        <span>Previous Session #{{ $consultation->parentConsultation->consultation_number }}</span>
+                    </a>
+                @endif
+            </div>
+
+            <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-1 font-semibold flex items-center space-x-1">
+                            <i class="fa-solid fa-calendar-day text-teal-400"></i>
+                            <span>Scheduled Checkup Date & Time:</span>
+                        </span>
+                        <strong class="text-emerald-400 font-mono text-base block">{{ $consultation->scheduled_at->format('F d, Y @ g:i A') }}</strong>
+                        <span class="text-[11px] text-amber-300/90 mt-1 flex items-center space-x-1">
+                            <i class="fa-solid fa-lock text-[10px]"></i>
+                            <span>Clinically fixed by doctor (not editable by client)</span>
+                        </span>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-1 font-semibold flex items-center space-x-1">
+                            <i class="fa-solid fa-tag text-teal-400"></i>
+                            <span>Follow-up Consultation Fee:</span>
+                        </span>
+                        @if(($consultation->credits_cost ?? 0) > 0)
+                            <div class="flex items-baseline space-x-2">
+                                <strong class="text-emerald-400 font-mono text-base">{{ $consultation->credits_cost }} credits</strong>
+                                <span class="text-slate-400 text-xs">(₱{{ number_format($consultation->fee, 2) }})</span>
+                            </div>
+                            <span class="text-[11px] text-slate-300 mt-1 block">
+                                Your balance: <strong class="{{ $userCredits >= $consultation->credits_cost ? 'text-emerald-300' : 'text-rose-300' }}">{{ number_format($userCredits) }} credits</strong>
+                            </span>
+                        @else
+                            <strong class="text-emerald-400 font-mono text-base flex items-center space-x-1.5">
+                                <i class="fa-solid fa-gift text-sm"></i>
+                                <span>Complimentary (FREE • 0 Credits)</span>
+                            </strong>
+                            <span class="text-[11px] text-emerald-300 mt-1 block">Dr. {{ $consultation->vet->name }} has provided this follow-up at no charge.</span>
+                        @endif
+                    </div>
+                </div>
+
+                @if(($consultation->credits_cost ?? 0) > 0 && $userCredits < $consultation->credits_cost)
+                    <div class="bg-rose-950/60 border border-rose-500/40 text-rose-200 p-3.5 rounded-xl text-xs flex items-center justify-between gap-3">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-400 text-base shrink-0"></i>
+                            <span>Insufficient credits! You need <strong>{{ $consultation->credits_cost }} credits</strong> to approve this follow-up. Please contact admin to top up your credits.</span>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="border-t border-slate-700/60 pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <p class="text-slate-300">
+                        <i class="fa-solid fa-circle-info text-teal-400 mr-1"></i>
+                        @if(($consultation->credits_cost ?? 0) > 0)
+                            Credits will only be deducted from your account balance once you click <strong>Approve Checkup</strong>.
+                        @else
+                            Clicking <strong>Approve Checkup</strong> will immediately confirm this session at no cost to you.
+                        @endif
+                    </p>
+
+                    <div class="flex items-center space-x-3 shrink-0">
+                        <!-- Decline Button -->
+                        <form method="POST" action="{{ route('client.bookings.decline-follow-up', $consultation) }}" onsubmit="return confirm('Decline this follow-up checkup?');">
+                            @csrf
+                            <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition-all">
+                                Decline
+                            </button>
+                        </form>
+
+                        <!-- Accept Button -->
+                        <form method="POST" action="{{ route('client.bookings.accept-follow-up', $consultation) }}" onsubmit="return confirm('Approve and confirm this follow-up checkup? {{ ($consultation->credits_cost ?? 0) > 0 ? $consultation->credits_cost . \" credits will be deducted.\" : \"No credits will be deducted (Free).\" }}');">
+                            @csrf
+                            <button type="submit"
+                                    @if(($consultation->credits_cost ?? 0) > 0 && $userCredits < $consultation->credits_cost) disabled @endif
+                                    class="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-lg shadow-teal-500/30 transition-all flex items-center space-x-1.5">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Approve & Confirm Checkup {{ ($consultation->credits_cost ?? 0) > 0 ? '(' . $consultation->credits_cost . ' Credits)' : '(Free)' }}</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Doctor Proposed Reschedule Banner (CRITICAL USER INTERACTION) -->
     @if($consultation->status === 'reschedule_suggested')
         <div class="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-indigo-700/80 space-y-5">
@@ -284,6 +420,26 @@
                 </div>
             </div>
             <span class="font-mono font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-xl text-sm">-{{ $consultation->credits_deducted }} credits</span>
+        </div>
+    @endif
+
+    <!-- Linked Parent Consultation Banner -->
+    @if($consultation->parentConsultation)
+        <div class="bg-teal-50/70 border border-teal-200/80 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs shadow-2xs">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm shadow-teal-600/20">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <div>
+                    <span class="text-teal-800 font-extrabold block text-[10px] uppercase tracking-wider">Follow-up For Previous Consultation</span>
+                    <strong class="text-slate-900 text-sm">Consultation #{{ $consultation->parentConsultation->consultation_number }}</strong>
+                    <span class="text-slate-500">({{ $consultation->parentConsultation->scheduled_at ? $consultation->parentConsultation->scheduled_at->format('M d, Y @ g:i A') : '' }})</span>
+                </div>
+            </div>
+            <a href="{{ route('client.bookings.show', $consultation->parentConsultation) }}" class="bg-white hover:bg-slate-50 text-teal-800 font-bold text-xs px-4 py-2.5 rounded-xl border border-teal-200 shadow-2xs inline-flex items-center space-x-1.5 transition-all shrink-0">
+                <span>View Previous Session & Prescription</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
         </div>
     @endif
 
@@ -375,6 +531,30 @@
                             <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-slate-700">
                                 <strong class="text-slate-900 block mb-0.5">Follow-up Instructions:</strong>
                                 <p class="leading-relaxed">{{ $consultation->record->follow_up_instructions }}</p>
+                            </div>
+                        @endif
+                        @if($consultation->record->followUpConsultation)
+                            <div class="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-teal-800 font-extrabold block text-[10px] uppercase tracking-wider">Follow-up Teleconsultation Booked</span>
+                                        <strong class="text-slate-900 text-xs">Session #{{ $consultation->record->followUpConsultation->consultation_number }}</strong>
+                                        <span class="text-slate-600">• {{ $consultation->record->followUpConsultation->scheduled_at ? $consultation->record->followUpConsultation->scheduled_at->format('M d, Y @ g:i A') : '' }}</span>
+                                        <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ml-1
+                                            @if($consultation->record->followUpConsultation->status === 'accepted') bg-emerald-100 text-emerald-800
+                                            @elseif($consultation->record->followUpConsultation->status === 'pending') bg-amber-100 text-amber-800
+                                            @else bg-slate-100 text-slate-700 @endif">
+                                            {{ ucfirst(str_replace('_', ' ', $consultation->record->followUpConsultation->status)) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <a href="{{ route('client.bookings.show', $consultation->record->followUpConsultation) }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors inline-flex items-center space-x-1 shrink-0">
+                                    <span>View Follow-up Session</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                </a>
                             </div>
                         @endif
                     </div>

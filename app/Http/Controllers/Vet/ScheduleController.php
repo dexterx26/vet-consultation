@@ -23,6 +23,7 @@ class ScheduleController extends Controller
     {
         $request->validate([
             'consultation_fee' => 'required|numeric|min:0',
+            'follow_up_fee' => 'nullable|numeric|min:0',
             'additional_pet_fee' => 'required|numeric|min:0',
             'additional_pet_duration' => 'required|integer|min:1|max:120',
             'clinic_name' => 'nullable|string|max:255',
@@ -39,7 +40,7 @@ class ScheduleController extends Controller
         $profile = Auth::user()->vetProfile;
         if ($profile) {
             $profile->update($request->only([
-                'consultation_fee', 'additional_pet_fee', 'additional_pet_duration',
+                'consultation_fee', 'follow_up_fee', 'additional_pet_fee', 'additional_pet_duration',
                 'clinic_name', 'clinic_address', 'city', 'province',
                 'latitude', 'longitude', 'expertise', 'bio', 'languages'
             ]));
@@ -51,6 +52,7 @@ class ScheduleController extends Controller
                 'message' => 'Profile & consultation settings updated successfully.',
                 'profile' => [
                     'consultation_fee' => $profile->consultation_fee,
+                    'follow_up_fee' => $profile->follow_up_fee,
                     'additional_pet_fee' => $profile->additional_pet_fee,
                     'additional_pet_duration' => $profile->additional_pet_duration,
                     'clinic_name' => $profile->clinic_name,
